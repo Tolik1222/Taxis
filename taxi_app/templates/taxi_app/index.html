@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Замовлення Таксі</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 400px; width: 100%; border-radius: 15px; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        button { width: 100%; padding: 15px; background: #ffdd00; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Куди їдемо? 🚕</h2>
+    <div id="map"></div>
+    <p id="info">Натисніть на карту, щоб обрати точку прибуття</p>
+    <button id="order-btn" style="display:none;">Замовити таксі</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    var startPoint = [50.4501, 30.5234];
+    var map = L.map('map').setView(startPoint, 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    L.marker(startPoint).addTo(map).bindPopup("Ви тут (Старт)").openPopup();
+
+    var destinationMarker;
+
+    map.on('click', function(e) {
+        if (destinationMarker) {
+            map.removeLayer(destinationMarker);
+        }
+        destinationMarker = L.marker(e.latlng).addTo(map);
+        document.getElementById('order-btn').style.display = 'block';
+        document.getElementById('info').innerText = "Точку обрано! Можна замовляти.";
+        
+        window.selectedLat = e.latlng.lat;
+        window.selectedLon = e.latlng.lng;
+    });
+
+    document.getElementById('order-btn').onclick = function() {
+        fetch('/taxi/api/create/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: "Web User",
+                start_lat: startPoint[0],
+                start_lon: startPoint[1],
+                end_lat: window.selectedLat,
+                end_lon: window.selectedLon
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(`Замовлення №${data.order_id} створено! Ціна: ${data.price}`);
+        });
+    };
+</script>
+</body>
+</html>

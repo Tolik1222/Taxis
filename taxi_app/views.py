@@ -2,6 +2,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Order
 from .utils import get_route_info, calculate_price
+from django.shortcuts import render
+
+def index_page(request):
+    return render(request, 'taxi_app/index.html')
 
 @api_view(['POST'])
 def create_order_api(request):
