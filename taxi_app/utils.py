@@ -1,16 +1,31 @@
 import requests
 
+OSRM_BASE = "https://router.project-osrm.org/route/v1/driving"
+
+
 def get_route_info(lat1, lon1, lat2, lon2):
-    url = f"http://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
+    """Повертає (distance_km, duration_mins) або (None, None)."""
+    url = f"{OSRM_BASE}/{lon1},{lat1};{lon2},{lat2}?overview=false"
     try:
-        response = requests.get(url).json()
-        distance_km = response['routes'][0]['distance'] / 1000
-        duration_mins = response['routes'][0]['duration'] / 60
+        response = requests.get(url, timeout=15)
+        response.raise_for_status()
+        payload = response.json()
+        route = payload["routes"][0]
+        distance_km = route["distance"] / 1000
+        duration_mins = route["duration"] / 60
         return distance_km, duration_mins
-    except:
+    except (requests.RequestException, KeyError, IndexError, ValueError, TypeError):
         return None, None
 
-def calculate_price(distance_km):
-    base_price = 200
-    price_per_km = 40
-    return round(base_price + (distance_km * price_per_km), 2)
+TIER_RULES = {
+    'economy': {'base': 160, 'per_km': 32},
+    'standard': {'base': 200, 'per_km': 40},
+    'comfort': {'base': 260, 'per_km': 52},
+}
+
+
+def calculate_price(distance_km, tier='standard'):
+    if distance_km is None:
+        return None
+    cfg = TIER_RULES.get(tier, TIER_RULES['standard'])
+    return round(cfg['base'] + distance_km * cfg['per_km'], 2)

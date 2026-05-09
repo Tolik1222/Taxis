@@ -1,0 +1,34 @@
+# Blueprint для Render: PostgreSQL + Python Web
+# У панелі Render: New → Blueprint → підключити цей репозиторій.
+
+
+databases:
+  - name: taxis-db
+    plan: free
+    databaseName: taxis
+    user: taxis
+
+services:
+  - type: web
+    name: taxis-web
+    runtime: python
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.0"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: taxis-db
+          property: connectionString
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      # Після деплою додай у Environment (copy value from .env / BotFather):
+      # TELEGRAM_BOT_TOKEN
+      # TELEGRAM_BOT_USERNAME   (без @)
+      # Опційно: DJANGO_CSRF_TRUSTED_ORIGINS=https://твій-кастомний-домен.com
+      # Для кастомного домену також додай його в DJANGO_ALLOWED_HOSTS або увімкни в BotFather.

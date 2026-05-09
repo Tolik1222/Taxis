@@ -2,64 +2,476 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>Замовлення Таксі</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Taxi Pro</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        #map { height: 400px; width: 100%; border-radius: 15px; }
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        button { width: 100%; padding: 15px; background: #ffdd00; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        :root {
+            --primary: #ffdd00;
+            --bg: #121212;
+            --card: #1e1e1e;
+            --card2: #2a2a2a;
+            --text: #f5f5f5;
+            --muted: #9a9a9a;
+            --accent: #3d9eff;
+            --radius: 16px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .gate-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .gate-card {
+            width: min(440px, 100%);
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 32px 28px;
+            box-shadow: 0 12px 48px rgba(0,0,0,.55);
+            text-align: center;
+        }
+        .gate-logo { font-size: 2.75rem; margin-bottom: 8px; }
+        .gate-card h1 { font-size: 1.35rem; margin: 0 0 8px; font-weight: 700; }
+        .gate-card p.sub { margin: 0 0 24px; color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
+
+        #screen-app #map { height: 100vh; width: 100%; z-index: 1; }
+        #screen-app { position: relative; min-height: 100vh; }
+
+        .top-bar {
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            right: 14px;
+            z-index: 1000;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .top-bar-inner {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .pill {
+            background: var(--card);
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,.4);
+            max-width: 100%;
+        }
+        .pill span { color: var(--muted); }
+        .role-tabs {
+            display: inline-flex;
+            background: var(--card2);
+            border-radius: 999px;
+            padding: 4px;
+        }
+        .role-tab {
+            padding: 8px 16px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            background: transparent;
+            color: var(--text);
+        }
+        .role-tab.active { background: var(--primary); color: #111; }
+        .link-out {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .link-out:hover { text-decoration: underline; }
+
+        .bottom-sheet-wrap {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        .bottom-sheet {
+            background: linear-gradient(180deg, rgba(30,30,30,.97), #1e1e1e);
+            border-radius: var(--radius) var(--radius) 0 0;
+            padding: 20px 20px calc(22px + env(safe-area-inset-bottom));
+            box-shadow: 0 -12px 40px rgba(0,0,0,.45);
+            text-align: left;
+            max-height: min(62vh, 520px);
+            overflow-y: auto;
+        }
+
+        .chips-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+        .chip {
+            border: 1px solid var(--card2);
+            background: var(--card2);
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .chip:hover { border-color: var(--primary); }
+        .chip.selected { border-color: var(--primary); background: rgba(255,221,0,.12); }
+
+        .hint { margin: 0; font-size: 0.8125rem; color: var(--muted); line-height: 1.45; }
+
+        .btn-big {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        .btn-primary { background: var(--primary); color: #111; }
+        .btn-secondary { background: var(--card2); color: var(--text); }
+        .btn-success { background: #2bbf6a; color: #063; font-weight: 700; }
+
+        #order-btn.big-hidden { display: none !important; }
+
+        .role-pick-cards { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+        .pick-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 18px;
+            border-radius: 14px;
+            border: 1px solid var(--card2);
+            cursor: pointer;
+            text-align: left;
+            background: var(--card2);
+            color: inherit;
+            font-family: inherit;
+            width: 100%;
+        }
+        .pick-card:hover { border-color: var(--primary); }
+        .pick-card .emoji { font-size: 2rem; }
+        .pick-card strong { display: block; margin-bottom: 4px; }
+        .pick-card small { color: var(--muted); font-size: 0.8125rem; line-height: 1.35; }
+
+        #driver-shift-row { margin-top: 14px; }
+        .badge-on { background: rgba(43,191,106,.22); color: #87ffb3; padding: 4px 10px; border-radius: 8px; font-size: .75rem; font-weight: 700; }
+        .badge-off { background: var(--card2); color: var(--muted); padding: 4px 10px; border-radius: 8px; font-size: .75rem; }
+
+        label.row-label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: block; margin-bottom: 6px; margin-top: 10px; }
     </style>
 </head>
-<body>
+<body class="{% if user.is_authenticated and not needs_role_gate %}app-{{ profile.role }}-mode{% endif %}">
 
-<div class="container">
-    <h2>Куди їдемо? 🚕</h2>
-    <div id="map"></div>
-    <p id="info">Натисніть на карту, щоб обрати точку прибуття</p>
-    <button id="order-btn" style="display:none;">Замовити таксі</button>
-</div>
+    {% if not user.is_authenticated %}
+    <div id="gate-login" class="gate-wrap">
+        <div class="gate-card">
+            <div class="gate-logo">🚕</div>
+            <h1>Taxi Pro</h1>
+            <p class="sub">Увійдіть через Telegram, щоб замовляти поїздки або приймати їх як водій.</p>
+            {% if telegram_login_hint %}
+            <p class="hint" style="color:#f88;margin-bottom:12px;">Не вдалося підтвердити вхід (токен, час або домен). Перевір BotFather та <code style="color:var(--primary)">TELEGRAM_BOT_TOKEN</code>.</p>
+            {% endif %}
+            <p class="hint" style="margin-bottom:10px;">Через <strong>повний перехід</strong> без iframe підходить локальний <code>http://127.0.0.1:8000</code> (краще не змішувати з <code>localhost</code>). Для BotFather використай <code>/setdomain</code> → домен без порту часто дорівнює <code>127.0.0.1</code>.</p>
+            <script async src="https://telegram.org/js/telegram-widget.js?22"
+                data-telegram-login="{{ telegram_bot_username }}"
+                data-size="large"
+                data-auth-url="{{ telegram_redirect_uri }}"
+                data-request-access="write">
+            </script>
+            <p class="hint" style="margin-top:16px;">На сервері має бути змінна <code style="color:var(--primary)">TELEGRAM_BOT_TOKEN</code>. Callback: <code style="font-size:0.7rem;">{{ telegram_redirect_uri }}</code></p>
+        </div>
+    </div>
+    {% elif needs_role_gate %}
+    <div id="gate-role" class="gate-wrap">
+        <div class="gate-card">
+            <div class="gate-logo">👋</div>
+            <h1>Хто ви зараз?</h1>
+            <p class="sub">Оберіть режим. Пізніше можна змінити у верхній панелі на карті.</p>
+            <div class="role-pick-cards">
+                <button type="button" class="pick-card" id="pick-passenger">
+                    <span class="emoji">🙋</span>
+                    <div>
+                        <strong>Пасажир</strong>
+                        <small>Карта, клас поїздки, маршрут по дорогах і фіксована ціна перед замовленням.</small>
+                    </div>
+                </button>
+                <button type="button" class="pick-card" id="pick-driver">
+                    <span class="emoji">🚕</span>
+                    <div>
+                        <strong>Водій</strong>
+                        <small>Тариф зміни, старт/кінець онлайну. Незабаром — список замовлень поруч.</small>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div id="screen-app">
+        <div class="top-bar">
+            <div class="top-bar-inner">
+                <div class="pill">Вітаю, <strong>{{ user.first_name|default:user.username }}</strong> <span>· Telegram</span></div>
+                <div class="role-tabs" role="tablist">
+                    <button type="button" class="role-tab {% if profile.role == 'passenger' %}active{% endif %}" data-role="passenger" id="tab-passenger">Пасажир</button>
+                    <button type="button" class="role-tab {% if profile.role == 'driver' %}active{% endif %}" data-role="driver" id="tab-driver">Водій</button>
+                </div>
+            </div>
+            <div class="pill"><a class="link-out" href="{% url 'logout' %}">Вийти</a></div>
+        </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    var startPoint = [50.4501, 30.5234];
-    var map = L.map('map').setView(startPoint, 13);
+        <div id="map"></div>
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        <div class="bottom-sheet-wrap">
+            <div class="bottom-sheet">
+                <div id="passenger-ui" {% if profile.role != 'passenger' %}style="display:none"{% endif %}>
+                    <label class="row-label">Клас поїздки</label>
+                    <div class="chips-row" id="tier-chips">
+                        <button type="button" class="chip" data-tier="economy">Економ</button>
+                        <button type="button" class="chip selected" data-tier="standard">Стандарт</button>
+                        <button type="button" class="chip" data-tier="comfort">Комфорт</button>
+                    </div>
+                    <p class="hint" id="tier-hint">Стандарт: базова подача + оптимальна ціна за км. Змініть клас до натискання «Замовити».</p>
+                    <p id="info" style="margin:12px 0 0;">Натисніть на карту, щоб обрати пункт призначення.</p>
+                    <button type="button" id="order-btn" class="btn-big btn-primary big-hidden">Замовити таксі</button>
+                </div>
 
-    L.marker(startPoint).addTo(map).bindPopup("Ви тут (Старт)").openPopup();
+                <div id="driver-ui" {% if profile.role != 'driver' %}style="display:none"{% endif %}>
+                    <p style="margin:0 0 4px;">Режим водія</p>
+                    <p class="hint" style="margin-top:0;">Статус: <span id="driver-status-badge" class="{% if profile.is_online %}badge-on{% else %}badge-off{% endif %}">{% if profile.is_online %}На лінії{% else %}Офлайн{% endif %}</span></p>
 
-    var destinationMarker;
+                    <label class="row-label">Тариф зміни</label>
+                    <div class="chips-row" id="driver-tariff-chips">
+                        <button type="button" class="chip {% if profile.tariff_plan == 'economy' %}selected{% endif %}" data-plan="economy">Економ</button>
+                        <button type="button" class="chip {% if profile.tariff_plan == 'standard' %}selected{% endif %}" data-plan="standard">Стандарт</button>
+                        <button type="button" class="chip {% if profile.tariff_plan == 'comfort' %}selected{% endif %}" data-plan="comfort">Комфорт</button>
+                    </div>
+                    <p class="hint">Тариф зберігається у профілі; пізніше можна прив’язати його до пріоритету в черзі.</p>
 
-    map.on('click', function(e) {
-        if (destinationMarker) {
-            map.removeLayer(destinationMarker);
+                    <div id="driver-shift-row">
+                        <button type="button" id="btn-shift-start" class="btn-big btn-success" {% if profile.is_online %}style="display:none"{% endif %}>Почати зміну</button>
+                        <button type="button" id="btn-shift-end" class="btn-big btn-secondary" {% if not profile.is_online %}style="display:none"{% endif %}>Закінчити зміну</button>
+                    </div>
+                    <p class="hint" style="margin-top:14px;">Замовлення поруч з’являться тут після підключення backend-черги.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var CSRF = '{{ csrf_token }}';
+        var API = {
+            create: '/taxi/api/create/',
+            setRole: '/taxi/api/session/role/',
+            shift: '/taxi/api/driver/shift/',
+            tariff: '/taxi/api/driver/tariff/'
+        };
+
+        function postJson(url, body) {
+            return fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF
+                },
+                body: JSON.stringify(body || {})
+            });
         }
-        destinationMarker = L.marker(e.latlng).addTo(map);
-        document.getElementById('order-btn').style.display = 'block';
-        document.getElementById('info').innerText = "Точку обрано! Можна замовляти.";
-        
-        window.selectedLat = e.latlng.lat;
-        window.selectedLon = e.latlng.lng;
-    });
 
-    document.getElementById('order-btn').onclick = function() {
-        fetch('/taxi/api/create/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: "Web User",
-                start_lat: startPoint[0],
-                start_lon: startPoint[1],
-                end_lat: window.selectedLat,
-                end_lon: window.selectedLon
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert(`Замовлення №${data.order_id} створено! Ціна: ${data.price}`);
+        document.getElementById('pick-passenger') && document.getElementById('pick-passenger').addEventListener('click', function () {
+            postJson(API.setRole, { role: 'passenger' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d.status === 'ok') window.location.reload();
+                    else alert(d.error || 'Не вдалося зберегти роль');
+                });
         });
-    };
-</script>
+        document.getElementById('pick-driver') && document.getElementById('pick-driver').addEventListener('click', function () {
+            postJson(API.setRole, { role: 'driver' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d.status === 'ok') window.location.reload();
+                    else alert(d.error || 'Не вдалося зберегти роль');
+                });
+        });
+
+        (function appMain() {
+            var mapEl = document.getElementById('map');
+            if (!mapEl) return;
+
+            var body = document.body;
+            var passengerTier = 'standard';
+            var tierHints = {
+                economy: 'Економ: найнижча подача та тариф за км — швидкі міські поїздки.',
+                standard: 'Стандарт: баланс ціни та комфорту.',
+                comfort: 'Комфорт: вища подача та тариф — просторіші автомобілі в пріоритеті.'
+            };
+
+            var tierChips = document.getElementById('tier-chips');
+            if (tierChips) {
+                tierChips.querySelectorAll('.chip[data-tier]').forEach(function (el) {
+                    el.addEventListener('click', function () {
+                        tierChips.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('selected'); });
+                        el.classList.add('selected');
+                        passengerTier = el.getAttribute('data-tier');
+                        var th = document.getElementById('tier-hint');
+                        if (th) th.textContent = tierHints[passengerTier];
+                    });
+                });
+            }
+
+            document.querySelectorAll('.role-tab').forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    var role = tab.getAttribute('data-role');
+                    postJson(API.setRole, { role: role })
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            if (d.role) {
+                                document.querySelectorAll('.role-tab').forEach(function (t) {
+                                    t.classList.toggle('active', t.getAttribute('data-role') === d.role);
+                                });
+                                var passUi = document.getElementById('passenger-ui');
+                                var drvUi = document.getElementById('driver-ui');
+                                if (passUi) passUi.style.display = d.role === 'passenger' ? 'block' : 'none';
+                                if (drvUi) drvUi.style.display = d.role === 'driver' ? 'block' : 'none';
+                                body.classList.remove('app-passenger-mode', 'app-driver-mode');
+                                body.classList.add('app-' + d.role + '-mode');
+                                if (d.role === 'passenger') {
+                                    if (typeof map.invalidateSize === 'function') setTimeout(function () { map.invalidateSize(); }, 200);
+                                }
+                            }
+                        });
+                });
+            });
+
+            document.querySelectorAll('#driver-tariff-chips .chip[data-plan]').forEach(function (el) {
+                el.addEventListener('click', function () {
+                    var plan = el.getAttribute('data-plan');
+                    postJson(API.tariff, { tariff_plan: plan })
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            if (d.status === 'ok') {
+                                document.querySelectorAll('#driver-tariff-chips .chip').forEach(function (c) {
+                                    c.classList.toggle('selected', c.getAttribute('data-plan') === d.tariff_plan);
+                                });
+                            } else alert(d.error || 'Помилка');
+                        });
+                });
+            });
+
+            function setDriverOnline(isOnline) {
+                var bd = document.getElementById('driver-status-badge');
+                var bs = document.getElementById('btn-shift-start');
+                var be = document.getElementById('btn-shift-end');
+                if (bd) {
+                    bd.className = isOnline ? 'badge-on' : 'badge-off';
+                    bd.textContent = isOnline ? 'На лінії' : 'Офлайн';
+                }
+                if (bs) bs.style.display = isOnline ? 'none' : 'block';
+                if (be) be.style.display = isOnline ? 'block' : 'none';
+            }
+
+            document.getElementById('btn-shift-start') && document.getElementById('btn-shift-start').addEventListener('click', function () {
+                postJson(API.shift, { action: 'start' }).then(function (r) { return r.json(); }).then(function (d) {
+                    if (d.is_online !== undefined) setDriverOnline(true);
+                    else alert(d.error || 'Помилка');
+                });
+            });
+            document.getElementById('btn-shift-end') && document.getElementById('btn-shift-end').addEventListener('click', function () {
+                postJson(API.shift, { action: 'end' }).then(function (r) { return r.json(); }).then(function (d) {
+                    if (d.is_online !== undefined) setDriverOnline(false);
+                    else alert(d.error || 'Помилка');
+                });
+            });
+
+            var startPoint = [50.4501, 30.5234];
+            var map = L.map('map', { zoomControl: false }).setView(startPoint, 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+            var startMarker = L.marker(startPoint).addTo(map).bindPopup('Звідки їдемо');
+            var destinationMarker, routeLine;
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    startPoint = [position.coords.latitude, position.coords.longitude];
+                    map.setView(startPoint, 15);
+                    startMarker.setLatLng(startPoint);
+                });
+            }
+
+            map.on('click', function (e) {
+                if (document.getElementById('passenger-ui').style.display === 'none') return;
+                if (destinationMarker) map.removeLayer(destinationMarker);
+                destinationMarker = L.marker(e.latlng).addTo(map);
+                var ob = document.getElementById('order-btn');
+                if (ob) { ob.style.display = 'block'; ob.classList.remove('big-hidden'); }
+                var info = document.getElementById('info');
+                if (info) info.textContent = 'Точку призначення обрано.';
+                window.selectedLat = e.latlng.lat;
+                window.selectedLon = e.latlng.lng;
+            });
+
+            function decodeOsrmLonLat(coords) {
+                return coords.map(function (pair) { return [pair[1], pair[0]]; });
+            }
+
+            document.getElementById('order-btn').onclick = function () {
+                if (routeLine) map.removeLayer(routeLine);
+
+                var sLon = startPoint[1], sLat = startPoint[0];
+                var eLon = window.selectedLon, eLat = window.selectedLat;
+                var osrmUrl = 'https://router.project-osrm.org/route/v1/driving/'
+                    + sLon + ',' + sLat + ';' + eLon + ',' + eLat
+                    + '?overview=full&geometries=geojson';
+
+                fetch(osrmUrl)
+                    .then(function (r) { return r.json(); })
+                    .then(function (routeJson) {
+                        var latlngs;
+                        try {
+                            var geom = routeJson.routes[0].geometry;
+                            latlngs = decodeOsrmLonLat(geom.coordinates);
+                        } catch (e) {
+                            latlngs = [startPoint, [window.selectedLat, window.selectedLon]];
+                        }
+                        routeLine = L.polyline(latlngs, { color: '#ffdd00', weight: 6, opacity: 0.92 }).addTo(map);
+                        map.fitBounds(routeLine.getBounds(), { padding: [48, 48] });
+                    })
+                    .catch(function () {
+                        routeLine = L.polyline([startPoint, [window.selectedLat, window.selectedLon]], { color: '#ffdd00', weight: 6 }).addTo(map);
+                    })
+                    .then(function () {
+                        return postJson(API.create, {
+                            start_lat: startPoint[0], start_lon: startPoint[1],
+                            end_lat: window.selectedLat, end_lon: window.selectedLon,
+                            service_tier: passengerTier
+                        });
+                    })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        if (data.price != null) {
+                            alert('Замовлення створено! Ціна: ' + data.price + ' (клас ' + passengerTier + ')');
+                        } else {
+                            alert(data.detail || data.error || data.message || 'Помилка замовлення');
+                        }
+                    });
+            };
+        })();
+    </script>
 </body>
 </html>
