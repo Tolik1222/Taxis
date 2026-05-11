@@ -51,12 +51,12 @@ _render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
 if _render_host and _render_host not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_render_host)
 
-if not ALLOWED_HOSTS or os.environ.get("DEBUG") == "True":
-    ALLOWED_HOSTS.extend(["127.0.0.1", "localhost", ".ngrok-free.dev"])
+if DEBUG:
+    for local_host in ("127.0.0.1", "localhost"):
+        if local_host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(local_host)
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://swipe-synapse-gossip.ngrok-free.dev"
-] + [
     o.strip()
     for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
     if o.strip()

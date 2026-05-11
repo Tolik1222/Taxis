@@ -299,7 +299,7 @@
                     <label class="row-label">Оплата</label>
                     <div class="chips-row" id="payment-chips">
                         <button type="button" class="chip selected" data-payment="cash">Готівка</button>
-                        <button type="button" class="chip" data-payment="card">Картка (Lemon Squeezy)</button>
+                        <button type="button" class="chip" data-payment="card">Картка (Stripe)</button>
                     </div>
                     <p class="hint" id="payment-hint">Готівка: оплата водію після завершення поїздки.</p>
                     <p id="info" style="margin:12px 0 0;">Натисніть на карту, щоб обрати пункт призначення.</p>
@@ -402,7 +402,7 @@
             };
             var paymentHints = {
                 cash: 'Готівка: оплата водію після завершення поїздки.',
-                card: 'Картка: після підтвердження відкриється Lemon Squeezy checkout.'
+                card: 'Картка: після підтвердження відкриється Stripe Checkout.'
             };
 
             var tierChips = document.getElementById('tier-chips');
@@ -738,7 +738,7 @@
                         routeLine = L.polyline([startPoint, [window.selectedLat, window.selectedLon]], { color: '#ffdd00', weight: 6 }).addTo(map);
                     })
                     .then(function () {
-                        var paymentLabel = paymentMethod === 'card' ? 'Картка (Lemon Squeezy)' : 'Готівка';
+                        var paymentLabel = paymentMethod === 'card' ? 'Картка (Stripe)' : 'Готівка';
                         var approve = window.confirm(
                             'Підтвердити замовлення?\n'
                             + 'Клас: ' + passengerTier + '\n'
@@ -766,7 +766,7 @@
                             }
                             if (data.payment_method === 'card' && data.payment_url) {
                                 alert('Замовлення #' + data.order_id + ' створено. Ціна: ' + data.price + driverText + '\nЗараз буде відкрито оплату карткою.');
-                                // Redirect на сторінку чекауту стороннього мерчанта (Lemon Squeezy).
+                                // Redirect на сторінку чекауту стороннього мерчанта (Stripe Checkout).
                                 window.location.href = data.payment_url;
                             } else {
                                 alert('Замовлення #' + data.order_id + ' створено! Ціна: ' + data.price + ' (клас ' + passengerTier + ')' + driverText);

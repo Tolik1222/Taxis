@@ -4,7 +4,7 @@ import hmac
 import hashlib
 import math
 import random
-import requests
+import stripe
 
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -98,93 +98,63 @@ def _move_bot_driver(profile):
     profile.save(update_fields=["lat", "lon"])
 
 
-def _create_lemonsqueezy_checkout(order, request):
-    api_key = os.getenv("LEMONSQUEEZY_API_KEY", "").strip()
-    store_id = os.getenv("LEMONSQUEEZY_STORE_ID", "").strip()
-    variant_id = os.getenv("LEMONSQUEEZY_VARIANT_ID", "").strip()
-    if not api_key or not store_id or not variant_id:
-        return {
-            "error": (
-                "Lemon Squeezy не налаштований "
-                "(LEMONSQUEEZY_API_KEY / LEMONSQUEEZY_STORE_ID / LEMONSQUEEZY_VARIANT_ID)."
-            )
-        }
+def _create_stripe_checkout(order, request):
+    api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+    if not api_key:
+        return {"error": "Stripe не налаштований (STRIPE_SECRET_KEY)."}
 
-    api_base = os.getenv("LEMONSQUEEZY_API_BASE", "https://api.lemonsqueezy.com").strip()
-    public_base = os.getenv("LEMONSQUEEZY_PUBLIC_BASE_URL", "").strip().rstrip("/")
+    public_base = os.getenv("STRIPE_PUBLIC_BASE_URL", "").strip().rstrip("/")
     if public_base:
-        success_url = f"{public_base}{reverse('index')}?paid=1&order_id={order.id}"
+        success_url = (
+            f"{public_base}{reverse('index')}?paid=1&order_id={order.id}"
+            "&session_id={CHECKOUT_SESSION_ID}"
+        )
         cancel_url = f"{public_base}{reverse('index')}?paid=0&order_id={order.id}"
     else:
-        success_url = request.build_absolute_uri(reverse("index")) + f"?paid=1&order_id={order.id}"
-        cancel_url = request.build_absolute_uri(reverse("index")) + f"?paid=0&order_id={order.id}"
-    # За замовчуванням тримаємо test mode ввімкненим, щоб не зловити бойові списання.
-    test_mode = os.getenv("LEMONSQUEEZY_TEST_MODE", "1").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
-    payload = {
-        "data": {
-            "type": "checkouts",
-            "attributes": {
-                "checkout_data": {
-                    "custom": {
-                        "order_id": str(order.id),
-                    },
-                },
-                "checkout_options": {
-                    "button_color": "#ffdd00",
-                },
-                "product_options": {
-                    "redirect_url": success_url,
-                    "receipt_button_text": "Назад до Taxi Pro",
-                    "receipt_link_url": success_url,
-                },
-                "expires_at": None,
-                "test_mode": test_mode,
-            },
-            "relationships": {
-                "store": {
-                    "data": {"type": "stores", "id": str(store_id)}
-                },
-                "variant": {
-                    "data": {"type": "variants", "id": str(variant_id)}
-                },
-            },
-        }
-    }
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Accept": "application/vnd.api+json",
-        "Content-Type": "application/vnd.api+json",
-    }
-    try:
-        resp = requests.post(
-            f"{api_base}/v1/checkouts",
-            json=payload,
-            headers=headers,
-            timeout=12,
+        success_url = (
+            request.build_absolute_uri(reverse("index"))
+            + f"?paid=1&order_id={order.id}&session_id={{CHECKOUT_SESSION_ID}}"
         )
-        data = resp.json()
+        cancel_url = request.build_absolute_uri(reverse("index")) + f"?paid=0&order_id={order.id}"
+    currency = (os.getenv("STRIPE_CURRENCY", "usd") or "usd").strip().lower()
+    amount_minor = int(float(order.price) * 100)
+    if amount_minor <= 0:
+        return {"error": "Некоректна сума для Stripe checkout."}
+
+    try:
+        stripe.api_key = api_key
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            client_reference_id=str(order.id),
+            metadata={
+                "order_id": str(order.id),
+                "payment_method": "card",
+            },
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": currency,
+                        "product_data": {
+                            "name": f"Taxi ride #{order.id}",
+                            "description": f"Поїздка класу {order.service_tier}",
+                        },
+                        "unit_amount": amount_minor,
+                    },
+                    "quantity": 1,
+                }
+            ],
+        )
+    except stripe.error.StripeError as exc:
+        msg = getattr(exc, "user_message", None) or str(exc)
+        return {"error": msg or "Stripe повернув помилку."}
     except Exception:
-        return {"error": "Не вдалося звернутися до Lemon Squeezy."}
+        return {"error": "Не вдалося звернутися до Stripe."}
 
-    if resp.status_code >= 300:
-        err = None
-        if isinstance(data, dict):
-            errors = data.get("errors") or []
-            if errors and isinstance(errors, list):
-                err = errors[0].get("detail") or errors[0].get("title")
-        return {"error": err or "Lemon Squeezy повернув помилку."}
-
-    tx = (data or {}).get("data", {})
-    checkout_url = ((tx.get("attributes") or {}).get("url")) or ""
-    transaction_id = tx.get("id") or ""
-    if not checkout_url:
-        return {"error": "Lemon Squeezy не повернув checkout URL."}
-    return {"checkout_url": checkout_url, "transaction_id": transaction_id}
+    if not session.url:
+        return {"error": "Stripe не повернув checkout URL."}
+    return {"checkout_url": session.url, "transaction_id": session.id}
 
 
 @ensure_csrf_cookie
@@ -446,7 +416,7 @@ def create_order_api(request):
 
         checkout_url = None
         if payment_method == "card":
-            checkout_res = _create_lemonsqueezy_checkout(order, request)
+            checkout_res = _create_stripe_checkout(order, request)
             if checkout_res.get("error"):
                 order.payment_status = "failed"
                 order.save(update_fields=["payment_status"])
