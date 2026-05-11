@@ -9,6 +9,14 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load .env locally/dev (Render uses Environment panel instead)
+try:
+    from dotenv import load_dotenv  # type: ignore
+
+    load_dotenv(BASE_DIR / ".env")
+except Exception:
+    pass
+
 
 def _env_bool(name, default=False):
     v = os.environ.get(name)
@@ -43,10 +51,12 @@ _render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
 if _render_host and _render_host not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_render_host)
 
-if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+if not ALLOWED_HOSTS or os.environ.get("DEBUG") == "True":
+    ALLOWED_HOSTS.extend(["127.0.0.1", "localhost", ".ngrok-free.dev"])
 
 CSRF_TRUSTED_ORIGINS = [
+    "https://swipe-synapse-gossip.ngrok-free.dev"
+] + [
     o.strip()
     for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
     if o.strip()

@@ -1,0 +1,30 @@
+{% extends "taxi_app/auth_base.html" %}
+
+{% block title %}Вхід — Taxi Pro{% endblock %}
+{% block subtitle %}Увійди за логіном і паролем або повернись і використай Telegram-вхід.{% endblock %}
+
+{% block content %}
+  {% if form.non_field_errors %}
+    <div class="err">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post" action="">
+    {% csrf_token %}
+
+    <div>
+      <label for="{{ form.username.id_for_label }}">Логін</label>
+      {{ form.username }}
+      {% if form.username.errors %}<div class="err">{{ form.username.errors }}</div>{% endif %}
+    </div>
+
+    <div>
+      <label for="{{ form.password.id_for_label }}">Пароль</label>
+      {{ form.password }}
+      {% if form.password.errors %}<div class="err">{{ form.password.errors }}</div>{% endif %}
+    </div>
+
+    <button class="btn btn-primary" type="submit">Увійти</button>
+    <a class="btn btn-secondary" href="{% url 'register' %}" style="text-decoration:none; display:block; text-align:center;">Створити акаунт</a>
+  </form>
+{% endblock %}
+

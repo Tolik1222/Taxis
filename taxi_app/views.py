@@ -2,12 +2,17 @@ import os
 import time
 import hmac
 import hashlib
+import math
+import random
+import requests
 
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET
 from django.contrib.auth import login, logout
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
 from rest_framework.decorators import api_view, permission_classes
@@ -25,6 +30,163 @@ def _get_profile(user):
     return profile
 
 
+def _haversine_km(lat1, lon1, lat2, lon2):
+    r = 6371.0
+    d_lat = math.radians(lat2 - lat1)
+    d_lon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(d_lat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(d_lon / 2) ** 2
+    )
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return r * c
+
+
+def _ensure_bot_drivers(count=8):
+    bots = []
+    base_lat = 50.4501
+    base_lon = 30.5234
+    # Боти мають стабільні логіни, щоб не плодити нових користувачів на кожному запиті.
+    for i in range(1, count + 1):
+        username = f"bot_driver_{i}"
+        user, _ = User.objects.get_or_create(
+            username=username,
+            defaults={"first_name": f"Бот {i}"},
+        )
+        profile, _ = UserProfile.objects.get_or_create(
+            user=user,
+            defaults={"role": "driver"},
+        )
+        changed_fields = []
+        if profile.role != "driver":
+            profile.role = "driver"
+            changed_fields.append("role")
+        if not profile.is_online:
+            profile.is_online = True
+            changed_fields.append("is_online")
+        if not profile.is_bot_driver:
+            profile.is_bot_driver = True
+            changed_fields.append("is_bot_driver")
+        if profile.lat is None or profile.lon is None:
+            profile.lat = base_lat + random.uniform(-0.03, 0.03)
+            profile.lon = base_lon + random.uniform(-0.03, 0.03)
+            changed_fields.extend(["lat", "lon"])
+        if not profile.car_make:
+            profile.car_make = "BotCar"
+            changed_fields.append("car_make")
+        if not profile.car_model:
+            profile.car_model = f"M{i}"
+            changed_fields.append("car_model")
+        if not profile.car_plate:
+            profile.car_plate = f"BOT{i:03d}"
+            changed_fields.append("car_plate")
+        if changed_fields:
+            profile.save(update_fields=changed_fields)
+        bots.append(profile)
+    return bots
+
+
+def _move_bot_driver(profile):
+    # Тут простий "блукаючий" рух у межах міста; цього достатньо для MVP-демо на мапі.
+    if profile.lat is None or profile.lon is None:
+        profile.lat = 50.4501 + random.uniform(-0.02, 0.02)
+        profile.lon = 30.5234 + random.uniform(-0.02, 0.02)
+    profile.lat += random.uniform(-0.0015, 0.0015)
+    profile.lon += random.uniform(-0.0018, 0.0018)
+    profile.save(update_fields=["lat", "lon"])
+
+
+def _create_lemonsqueezy_checkout(order, request):
+    api_key = os.getenv("LEMONSQUEEZY_API_KEY", "").strip()
+    store_id = os.getenv("LEMONSQUEEZY_STORE_ID", "").strip()
+    variant_id = os.getenv("LEMONSQUEEZY_VARIANT_ID", "").strip()
+    if not api_key or not store_id or not variant_id:
+        return {
+            "error": (
+                "Lemon Squeezy не налаштований "
+                "(LEMONSQUEEZY_API_KEY / LEMONSQUEEZY_STORE_ID / LEMONSQUEEZY_VARIANT_ID)."
+            )
+        }
+
+    api_base = os.getenv("LEMONSQUEEZY_API_BASE", "https://api.lemonsqueezy.com").strip()
+    public_base = os.getenv("LEMONSQUEEZY_PUBLIC_BASE_URL", "").strip().rstrip("/")
+    if public_base:
+        success_url = f"{public_base}{reverse('index')}?paid=1&order_id={order.id}"
+        cancel_url = f"{public_base}{reverse('index')}?paid=0&order_id={order.id}"
+    else:
+        success_url = request.build_absolute_uri(reverse("index")) + f"?paid=1&order_id={order.id}"
+        cancel_url = request.build_absolute_uri(reverse("index")) + f"?paid=0&order_id={order.id}"
+    # За замовчуванням тримаємо test mode ввімкненим, щоб не зловити бойові списання.
+    test_mode = os.getenv("LEMONSQUEEZY_TEST_MODE", "1").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+    payload = {
+        "data": {
+            "type": "checkouts",
+            "attributes": {
+                "checkout_data": {
+                    "custom": {
+                        "order_id": str(order.id),
+                    },
+                },
+                "checkout_options": {
+                    "button_color": "#ffdd00",
+                },
+                "product_options": {
+                    "redirect_url": success_url,
+                    "receipt_button_text": "Назад до Taxi Pro",
+                    "receipt_link_url": success_url,
+                },
+                "expires_at": None,
+                "test_mode": test_mode,
+            },
+            "relationships": {
+                "store": {
+                    "data": {"type": "stores", "id": str(store_id)}
+                },
+                "variant": {
+                    "data": {"type": "variants", "id": str(variant_id)}
+                },
+            },
+        }
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Accept": "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json",
+    }
+    try:
+        resp = requests.post(
+            f"{api_base}/v1/checkouts",
+            json=payload,
+            headers=headers,
+            timeout=12,
+        )
+        data = resp.json()
+    except Exception:
+        return {"error": "Не вдалося звернутися до Lemon Squeezy."}
+
+    if resp.status_code >= 300:
+        err = None
+        if isinstance(data, dict):
+            errors = data.get("errors") or []
+            if errors and isinstance(errors, list):
+                err = errors[0].get("detail") or errors[0].get("title")
+        return {"error": err or "Lemon Squeezy повернув помилку."}
+
+    tx = (data or {}).get("data", {})
+    checkout_url = ((tx.get("attributes") or {}).get("url")) or ""
+    transaction_id = tx.get("id") or ""
+    if not checkout_url:
+        return {"error": "Lemon Squeezy не повернув checkout URL."}
+    return {"checkout_url": checkout_url, "transaction_id": transaction_id}
+
+
 @ensure_csrf_cookie
 def index_page(request):
     profile = None
@@ -33,6 +195,7 @@ def index_page(request):
     needs_role_gate = request.session.get('show_role_confirmation', False)
     telegram_bot_username = os.getenv('TELEGRAM_BOT_USERNAME', 'TolikTaxi1_Bot')
     telegram_redirect_uri = request.build_absolute_uri(reverse('telegram_callback'))
+    telegram_token_present = bool(os.getenv("TELEGRAM_BOT_TOKEN"))
     return render(
         request,
         'taxi_app/index.html',
@@ -41,6 +204,7 @@ def index_page(request):
             'needs_role_gate': needs_role_gate,
             'telegram_bot_username': telegram_bot_username,
             'telegram_redirect_uri': telegram_redirect_uri,
+            'telegram_token_present': telegram_token_present,
             'telegram_login_hint': (
                 not request.user.is_authenticated
                 and request.GET.get('tg_err') == '1'
@@ -52,6 +216,37 @@ def index_page(request):
 def logout_view(request):
     logout(request)
     return redirect('index')
+
+
+@ensure_csrf_cookie
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+
+    form = AuthenticationForm(request, data=request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.get_user()
+        login(request, user)
+        _get_profile(user)
+        return redirect('index')
+
+    return render(request, 'taxi_app/auth_login.html', {'form': form})
+
+
+@ensure_csrf_cookie
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+
+    form = UserCreationForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        login(request, user)
+        _get_profile(user)
+        request.session['show_role_confirmation'] = True
+        return redirect('index')
+
+    return render(request, 'taxi_app/auth_register.html', {'form': form})
 
 
 def _telegram_payload_as_dict(payload):
@@ -175,9 +370,13 @@ def create_order_api(request):
         end_lat = data.get('end_lat')
         end_lon = data.get('end_lon')
         service_tier = data.get('service_tier', 'standard')
+        driver_user_id = data.get("driver_user_id")
+        payment_method = data.get("payment_method", "cash")
 
         if service_tier not in TIER_RULES:
             return Response({"error": "Невідомий клас поїздки"}, status=400)
+        if payment_method not in ("cash", "card"):
+            return Response({"error": "Спосіб оплати: cash або card"}, status=400)
 
         if not all([start_lat, start_lon, end_lat, end_lon]):
             return Response({"error": "Missing coordinates"}, status=400)
@@ -193,8 +392,45 @@ def create_order_api(request):
         user = request.user
         passenger_name = (user.first_name or "").strip() or user.username
 
+        passenger_profile = _get_profile(user)
+        if passenger_profile.role != "passenger":
+            return Response({"error": "Створювати замовлення може лише пасажир"}, status=403)
+
+        driver = None
+        if driver_user_id not in (None, "", 0):
+            try:
+                driver_user_id = int(driver_user_id)
+            except (TypeError, ValueError):
+                return Response({"error": "Невірний driver_user_id"}, status=400)
+            driver_profile = UserProfile.objects.filter(
+                user_id=driver_user_id, role="driver", is_online=True
+            ).select_related("user").first()
+            if driver_profile is None:
+                return Response({"error": "Водій недоступний"}, status=400)
+            driver = driver_profile.user
+        elif start_lat and start_lon:
+            # Якщо пасажир не вибрав водія руками, беремо найближчого онлайн по координатах.
+            candidate_profiles = UserProfile.objects.select_related("user").filter(
+                role="driver",
+                is_online=True,
+                lat__isnull=False,
+                lon__isnull=False,
+            )
+            best_profile = None
+            best_dist = None
+            for candidate in candidate_profiles:
+                dist = _haversine_km(
+                    float(start_lat), float(start_lon), candidate.lat, candidate.lon
+                )
+                if best_dist is None or dist < best_dist:
+                    best_dist = dist
+                    best_profile = candidate
+            if best_profile:
+                driver = best_profile.user
+
         order = Order.objects.create(
             passenger=user,
+            driver=driver,
             passenger_name=passenger_name,
             service_tier=service_tier,
             start_lat=start_lat,
@@ -203,13 +439,40 @@ def create_order_api(request):
             end_lon=end_lon,
             distance=distance_km,
             price=price,
+            payment_method=payment_method,
+            payment_status="pending" if payment_method == "card" else "not_required",
             status="new",
         )
+
+        checkout_url = None
+        if payment_method == "card":
+            checkout_res = _create_lemonsqueezy_checkout(order, request)
+            if checkout_res.get("error"):
+                order.payment_status = "failed"
+                order.save(update_fields=["payment_status"])
+                return Response({"error": checkout_res["error"]}, status=400)
+            order.paddle_transaction_id = checkout_res.get("transaction_id", "")
+            order.save(update_fields=["paddle_transaction_id"])
+            checkout_url = checkout_res.get("checkout_url")
 
         return Response({
             "status": "success",
             "order_id": order.id,
             "price": price,
+            "payment_method": payment_method,
+            "payment_status": order.payment_status,
+            "payment_url": checkout_url,
+            "assigned_driver": (
+                {
+                    "user_id": driver.id,
+                    "name": driver.first_name or driver.username,
+                    "is_bot": bool(
+                        UserProfile.objects.filter(user=driver, is_bot_driver=True).exists()
+                    ),
+                }
+                if driver
+                else None
+            ),
         })
 
     except Exception as e:
@@ -229,6 +492,11 @@ def api_me(request):
             "role": p.role,
             "is_online": p.is_online,
             "tariff_plan": p.tariff_plan,
+            "phone": p.phone,
+            "car_make": p.car_make,
+            "car_model": p.car_model,
+            "car_plate": p.car_plate,
+            "driver_bio": p.driver_bio,
         }
     )
 
@@ -275,3 +543,87 @@ def api_driver_tariff(request):
     p.tariff_plan = plan
     p.save(update_fields=['tariff_plan'])
     return Response({"status": "ok", "tariff_plan": p.tariff_plan})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def api_drivers_online(request):
+    """Список онлайн-водіїв для пасажира (MVP без геофільтра)."""
+    passenger_profile = _get_profile(request.user)
+    if passenger_profile.role != "passenger":
+        return Response({"error": "Доступно лише для пасажира"}, status=403)
+
+    drivers = (
+        UserProfile.objects.select_related("user")
+        .filter(role="driver", is_online=True)
+        .order_by("user__first_name", "user__username")[:100]
+    )
+    items = []
+    for d in drivers:
+        items.append(
+            {
+                "user_id": d.user_id,
+                "name": (d.user.first_name or d.user.username),
+                "tariff_plan": d.tariff_plan,
+                "phone": d.phone,
+                "car": " ".join(x for x in [d.car_make, d.car_model] if x).strip(),
+                "plate": d.car_plate,
+                "bio": d.driver_bio,
+            }
+        )
+    return Response({"items": items})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def api_drivers_map(request):
+    """Повертає онлайн-водіїв для мапи, включно з ботами."""
+    _ensure_bot_drivers()
+    bots = UserProfile.objects.select_related("user").filter(is_bot_driver=True, is_online=True)
+    for bot in bots:
+        _move_bot_driver(bot)
+
+    drivers = (
+        UserProfile.objects.select_related("user")
+        .filter(role="driver", is_online=True, lat__isnull=False, lon__isnull=False)
+        .order_by("user__first_name", "user__username")[:200]
+    )
+    items = []
+    for d in drivers:
+        items.append(
+            {
+                "user_id": d.user_id,
+                "name": d.user.first_name or d.user.username,
+                "lat": d.lat,
+                "lon": d.lon,
+                "tariff_plan": d.tariff_plan,
+                "is_bot": d.is_bot_driver,
+                "car": " ".join(x for x in [d.car_make, d.car_model] if x).strip(),
+                "plate": d.car_plate,
+            }
+        )
+    return Response({"items": items})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def api_driver_profile_update(request):
+    """Налаштування водія (контакти/авто/опис)."""
+    p = _get_profile(request.user)
+    if p.role != "driver":
+        return Response({"error": "Доступно лише для водія"}, status=403)
+
+    phone = (request.data.get("phone") or "").strip()
+    car_make = (request.data.get("car_make") or "").strip()
+    car_model = (request.data.get("car_model") or "").strip()
+    car_plate = (request.data.get("car_plate") or "").strip().upper()
+    driver_bio = (request.data.get("driver_bio") or "").strip()
+
+    p.phone = phone[:32]
+    p.car_make = car_make[:64]
+    p.car_model = car_model[:64]
+    p.car_plate = car_plate[:16]
+    p.driver_bio = driver_bio[:160]
+    p.save(update_fields=["phone", "car_make", "car_model", "car_plate", "driver_bio"])
+
+    return Response({"status": "ok"})

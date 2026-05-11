@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Taxi Pro{% endblock %}</title>
+  <style>
+    :root {
+      --primary: #ffdd00;
+      --bg: #121212;
+      --card: #1e1e1e;
+      --card2: #2a2a2a;
+      --text: #f5f5f5;
+      --muted: #9a9a9a;
+      --radius: 16px;
+      --danger: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      padding: 24px;
+    }
+    .card {
+      width: min(520px, 100%);
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: 0 12px 48px rgba(0,0,0,.55);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .brand h1 { margin: 0; font-size: 1.2rem; }
+    .brand a { color: var(--muted); text-decoration: none; font-size: .9rem; }
+    .brand a:hover { text-decoration: underline; }
+    .subtitle { margin: 0 0 18px; color: var(--muted); line-height: 1.45; }
+    form { display: grid; gap: 14px; }
+    label { font-size: .85rem; color: var(--muted); display:block; margin-bottom: 6px; }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #333;
+      background: var(--card2);
+      color: var(--text);
+      outline: none;
+    }
+    input:focus { border-color: var(--primary); }
+    .btn {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .btn-primary { background: var(--primary); color: #111; }
+    .btn-secondary { background: var(--card2); color: var(--text); }
+    .err {
+      background: rgba(255, 107, 107, 0.12);
+      border: 1px solid rgba(255, 107, 107, 0.35);
+      padding: 10px 12px;
+      border-radius: 12px;
+      color: var(--danger);
+      font-size: .9rem;
+      line-height: 1.35;
+    }
+    .help { margin-top: 14px; color: var(--muted); font-size: .9rem; }
+    .help a { color: var(--primary); text-decoration: none; }
+    .help a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <h1>🚕 Taxi Pro</h1>
+      <a href="{% url 'index' %}">На головну</a>
+    </div>
+    <p class="subtitle">{% block subtitle %}{% endblock %}</p>
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>
+

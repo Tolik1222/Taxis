@@ -130,6 +130,30 @@
         .chip.selected { border-color: var(--primary); background: rgba(255,221,0,.12); }
 
         .hint { margin: 0; font-size: 0.8125rem; color: var(--muted); line-height: 1.45; }
+        .panel {
+            background: rgba(42,42,42,.7);
+            border: 1px solid rgba(255,255,255,.06);
+            border-radius: 14px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+        .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+        .field {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,.08);
+            background: var(--card2);
+            color: var(--text);
+            outline: none;
+        }
+        .field:focus { border-color: rgba(255,221,0,.6); }
+        .list {
+            display: grid;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .list button { text-align: left; }
 
         .btn-big {
             width: 100%;
@@ -192,7 +216,13 @@
                 data-auth-url="{{ telegram_redirect_uri }}"
                 data-request-access="write">
             </script>
-            <p class="hint" style="margin-top:16px;">На сервері має бути змінна <code style="color:var(--primary)">TELEGRAM_BOT_TOKEN</code>. Callback: <code style="font-size:0.7rem;">{{ telegram_redirect_uri }}</code></p>
+            <div style="margin-top:14px; display:grid; gap:10px;">
+                <a href="{% url 'login' %}" class="btn-big btn-secondary" style="text-decoration:none; text-align:center; padding:12px 14px; border-radius:12px;">Увійти логіном і паролем</a>
+                <a href="{% url 'register' %}" class="btn-big btn-secondary" style="text-decoration:none; text-align:center; padding:12px 14px; border-radius:12px;">Реєстрація</a>
+            </div>
+            {% if not telegram_token_present %}
+            <p class="hint" style="margin-top:16px; color:#f8a;">Змінна <code style="color:var(--primary)">TELEGRAM_BOT_TOKEN</code> не підхопилась (перевір, що сервер завантажує <code>.env</code> або задав її в Environment). Callback: <code style="font-size:0.7rem;">{{ telegram_redirect_uri }}</code></p>
+            {% endif %}
         </div>
     </div>
     {% elif needs_role_gate %}
@@ -237,6 +267,21 @@
         <div class="bottom-sheet-wrap">
             <div class="bottom-sheet">
                 <div id="passenger-ui" {% if profile.role != 'passenger' %}style="display:none"{% endif %}>
+                    <label class="row-label">Звідки їдемо</label>
+                    <div class="chips-row" id="start-mode-chips">
+                        <button type="button" class="chip selected" data-start="gps">Моя геолокація</button>
+                        <button type="button" class="chip" data-start="map">На мапі</button>
+                        <button type="button" class="chip" data-start="address">Адреса</button>
+                    </div>
+                    <div class="panel" id="start-address-panel" style="display:none;">
+                        <input class="field" id="start-address" placeholder="Введіть адресу старту (наприклад: Хрещатик 1, Київ)" />
+                        <div class="list" id="start-suggest"></div>
+                        <p class="hint" style="margin-top:8px;">Порада: обери підказку — стартовий маркер переміститься.</p>
+                    </div>
+                    <div class="panel" id="start-map-panel" style="display:none;">
+                        <p class="hint">Натисни на мапі, щоб поставити старт. Також можна перетягнути стартовий маркер.</p>
+                    </div>
+
                     <label class="row-label">Клас поїздки</label>
                     <div class="chips-row" id="tier-chips">
                         <button type="button" class="chip" data-tier="economy">Економ</button>
@@ -244,6 +289,19 @@
                         <button type="button" class="chip" data-tier="comfort">Комфорт</button>
                     </div>
                     <p class="hint" id="tier-hint">Стандарт: базова подача + оптимальна ціна за км. Змініть клас до натискання «Замовити».</p>
+
+                    <label class="row-label">Водій</label>
+                    <div class="chips-row" id="driver-pick-row">
+                        <button type="button" class="chip selected" data-driver="auto">Автоматично</button>
+                        <button type="button" class="chip" id="btn-load-drivers">Обрати водія</button>
+                    </div>
+                    <div id="drivers-list" style="display:none; margin-top:10px; display:none;"></div>
+                    <label class="row-label">Оплата</label>
+                    <div class="chips-row" id="payment-chips">
+                        <button type="button" class="chip selected" data-payment="cash">Готівка</button>
+                        <button type="button" class="chip" data-payment="card">Картка (Lemon Squeezy)</button>
+                    </div>
+                    <p class="hint" id="payment-hint">Готівка: оплата водію після завершення поїздки.</p>
                     <p id="info" style="margin:12px 0 0;">Натисніть на карту, щоб обрати пункт призначення.</p>
                     <button type="button" id="order-btn" class="btn-big btn-primary big-hidden">Замовити таксі</button>
                 </div>
@@ -264,6 +322,20 @@
                         <button type="button" id="btn-shift-start" class="btn-big btn-success" {% if profile.is_online %}style="display:none"{% endif %}>Почати зміну</button>
                         <button type="button" id="btn-shift-end" class="btn-big btn-secondary" {% if not profile.is_online %}style="display:none"{% endif %}>Закінчити зміну</button>
                     </div>
+                    <label class="row-label">Налаштування водія</label>
+                    <div class="panel" style="display:grid; gap:10px;">
+                        <input class="field" id="drv-phone" placeholder="Телефон (для пасажира)" value="{{ profile.phone|default:'' }}" />
+                        <div class="grid2">
+                            <input class="field" id="drv-make" placeholder="Марка авто" value="{{ profile.car_make|default:'' }}" />
+                            <input class="field" id="drv-model" placeholder="Модель" value="{{ profile.car_model|default:'' }}" />
+                        </div>
+                        <div class="grid2">
+                            <input class="field" id="drv-plate" placeholder="Номер авто" value="{{ profile.car_plate|default:'' }}" />
+                            <input class="field" id="drv-bio" placeholder="Коротко про себе" value="{{ profile.driver_bio|default:'' }}" />
+                        </div>
+                        <button type="button" id="btn-save-driver-profile" class="btn-big btn-secondary">Зберегти</button>
+                        <p class="hint">Ці дані бачить пасажир при виборі водія.</p>
+                    </div>
                     <p class="hint" style="margin-top:14px;">Замовлення поруч з’являться тут після підключення backend-черги.</p>
                 </div>
             </div>
@@ -278,7 +350,10 @@
             create: '/taxi/api/create/',
             setRole: '/taxi/api/session/role/',
             shift: '/taxi/api/driver/shift/',
-            tariff: '/taxi/api/driver/tariff/'
+            tariff: '/taxi/api/driver/tariff/',
+            driverProfile: '/taxi/api/driver/profile/',
+            driversOnline: '/taxi/api/drivers/online/',
+            driversMap: '/taxi/api/drivers/map/'
         };
 
         function postJson(url, body) {
@@ -316,10 +391,18 @@
 
             var body = document.body;
             var passengerTier = 'standard';
+            var paymentMethod = 'cash';
+            var selectedDriverUserId = null;
+            var startMode = 'gps'; // gps | map | address
+            var startPickArmed = false;
             var tierHints = {
                 economy: 'Економ: найнижча подача та тариф за км — швидкі міські поїздки.',
                 standard: 'Стандарт: баланс ціни та комфорту.',
                 comfort: 'Комфорт: вища подача та тариф — просторіші автомобілі в пріоритеті.'
+            };
+            var paymentHints = {
+                cash: 'Готівка: оплата водію після завершення поїздки.',
+                card: 'Картка: після підтвердження відкриється Lemon Squeezy checkout.'
             };
 
             var tierChips = document.getElementById('tier-chips');
@@ -331,6 +414,43 @@
                         passengerTier = el.getAttribute('data-tier');
                         var th = document.getElementById('tier-hint');
                         if (th) th.textContent = tierHints[passengerTier];
+                    });
+                });
+            }
+            var paymentChips = document.getElementById('payment-chips');
+            if (paymentChips) {
+                paymentChips.querySelectorAll('.chip[data-payment]').forEach(function (el) {
+                    el.addEventListener('click', function () {
+                        paymentChips.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('selected'); });
+                        el.classList.add('selected');
+                        paymentMethod = el.getAttribute('data-payment');
+                        var ph = document.getElementById('payment-hint');
+                        if (ph) ph.textContent = paymentHints[paymentMethod];
+                    });
+                });
+            }
+
+            // Start point selection UX
+            function setStartMode(mode) {
+                startMode = mode;
+                var chips = document.getElementById('start-mode-chips');
+                if (chips) {
+                    chips.querySelectorAll('.chip[data-start]').forEach(function (c) {
+                        c.classList.toggle('selected', c.getAttribute('data-start') === mode);
+                    });
+                }
+                var pAddr = document.getElementById('start-address-panel');
+                var pMap = document.getElementById('start-map-panel');
+                if (pAddr) pAddr.style.display = (mode === 'address') ? 'block' : 'none';
+                if (pMap) pMap.style.display = (mode === 'map') ? 'block' : 'none';
+                startPickArmed = (mode === 'map');
+            }
+
+            var startModeChips = document.getElementById('start-mode-chips');
+            if (startModeChips) {
+                startModeChips.querySelectorAll('.chip[data-start]').forEach(function (el) {
+                    el.addEventListener('click', function () {
+                        setStartMode(el.getAttribute('data-start'));
                     });
                 });
             }
@@ -374,6 +494,66 @@
                 });
             });
 
+            // Driver settings save (driver-only)
+            var saveDrvBtn = document.getElementById('btn-save-driver-profile');
+            if (saveDrvBtn) {
+                saveDrvBtn.addEventListener('click', function () {
+                    postJson(API.driverProfile, {
+                        phone: (document.getElementById('drv-phone') || {}).value,
+                        car_make: (document.getElementById('drv-make') || {}).value,
+                        car_model: (document.getElementById('drv-model') || {}).value,
+                        car_plate: (document.getElementById('drv-plate') || {}).value,
+                        driver_bio: (document.getElementById('drv-bio') || {}).value
+                    })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        if (d.status === 'ok') alert('Збережено');
+                        else alert(d.error || 'Помилка');
+                    });
+                });
+            }
+
+            // Passenger: load online drivers + allow pick
+            var btnLoadDrivers = document.getElementById('btn-load-drivers');
+            var driversList = document.getElementById('drivers-list');
+            function renderDrivers(items) {
+                if (!driversList) return;
+                driversList.style.display = 'block';
+                driversList.innerHTML = '';
+                if (!items || !items.length) {
+                    driversList.innerHTML = '<p class="hint">Немає онлайн-водіїв. Спробуй «Автоматично» або пізніше.</p>';
+                    return;
+                }
+                items.forEach(function (it) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'chip';
+                    var carLine = (it.car ? (' · ' + it.car) : '') + (it.plate ? (' · ' + it.plate) : '');
+                    btn.textContent = (it.name || ('Driver #' + it.user_id)) + ' · ' + it.tariff_plan + carLine;
+                    btn.addEventListener('click', function () {
+                        selectedDriverUserId = it.user_id;
+                        if (btnLoadDrivers) btnLoadDrivers.textContent = 'Обрано: ' + (it.name || it.user_id);
+                        if (driversList) driversList.style.display = 'none';
+                    });
+                    driversList.appendChild(btn);
+                });
+            }
+            if (btnLoadDrivers) {
+                btnLoadDrivers.addEventListener('click', function () {
+                    if (!driversList) return;
+                    if (driversList.style.display === 'block') {
+                        driversList.style.display = 'none';
+                        return;
+                    }
+                    fetch(API.driversOnline, { credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            if (d.items) renderDrivers(d.items);
+                            else alert(d.error || 'Не вдалося завантажити водіїв');
+                        });
+                });
+            }
+
             function setDriverOnline(isOnline) {
                 var bd = document.getElementById('driver-status-badge');
                 var bs = document.getElementById('btn-shift-start');
@@ -402,8 +582,15 @@
             var startPoint = [50.4501, 30.5234];
             var map = L.map('map', { zoomControl: false }).setView(startPoint, 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            var carIcon = L.divIcon({
+                className: 'driver-car-icon',
+                html: '<div style="font-size:20px; line-height:20px;">🚕</div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+            var driverMarkers = {};
 
-            var startMarker = L.marker(startPoint).addTo(map).bindPopup('Звідки їдемо');
+            var startMarker = L.marker(startPoint, { draggable: true }).addTo(map).bindPopup('Старт');
             var destinationMarker, routeLine;
 
             if (navigator.geolocation) {
@@ -414,8 +601,52 @@
                 });
             }
 
+            function syncDriverMarkers(items) {
+                var seen = {};
+                (items || []).forEach(function (d) {
+                    if (!d || d.lat == null || d.lon == null) return;
+                    seen[d.user_id] = true;
+                    var label = (d.name || ('Driver #' + d.user_id)) + (d.is_bot ? ' (бот)' : '');
+                    if (!driverMarkers[d.user_id]) {
+                        driverMarkers[d.user_id] = L.marker([d.lat, d.lon], { icon: carIcon }).addTo(map);
+                    } else {
+                        driverMarkers[d.user_id].setLatLng([d.lat, d.lon]);
+                    }
+                    driverMarkers[d.user_id].bindPopup(label);
+                });
+                Object.keys(driverMarkers).forEach(function (id) {
+                    if (!seen[id]) {
+                        map.removeLayer(driverMarkers[id]);
+                        delete driverMarkers[id];
+                    }
+                });
+            }
+            function refreshDriversOnMap() {
+                // Це легкий polling раз на 5 секунд — без websocket, але для демо працює стабільно.
+                fetch(API.driversMap, { credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        if (d.items) syncDriverMarkers(d.items);
+                    });
+            }
+            refreshDriversOnMap();
+            setInterval(refreshDriversOnMap, 5000);
+
+            startMarker.on('dragend', function () {
+                var ll = startMarker.getLatLng();
+                startPoint = [ll.lat, ll.lng];
+            });
+
             map.on('click', function (e) {
                 if (document.getElementById('passenger-ui').style.display === 'none') return;
+                if (startPickArmed) {
+                    startPoint = [e.latlng.lat, e.latlng.lng];
+                    startMarker.setLatLng(e.latlng);
+                    startPickArmed = false;
+                    var infoStart = document.getElementById('info');
+                    if (infoStart) infoStart.textContent = 'Старт встановлено. Тепер обери пункт призначення.';
+                    return;
+                }
                 if (destinationMarker) map.removeLayer(destinationMarker);
                 destinationMarker = L.marker(e.latlng).addTo(map);
                 var ob = document.getElementById('order-btn');
@@ -426,11 +657,62 @@
                 window.selectedLon = e.latlng.lng;
             });
 
+            // Address search via Nominatim (start)
+            var addrInput = document.getElementById('start-address');
+            var suggestBox = document.getElementById('start-suggest');
+            var addrTimer = null;
+            function clearSuggest() {
+                if (!suggestBox) return;
+                suggestBox.innerHTML = '';
+            }
+            function addSuggestItem(label, lat, lon) {
+                if (!suggestBox) return;
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'chip';
+                b.textContent = label;
+                b.addEventListener('click', function () {
+                    var ll = { lat: parseFloat(lat), lng: parseFloat(lon) };
+                    startPoint = [ll.lat, ll.lng];
+                    startMarker.setLatLng(ll);
+                    map.setView(startPoint, Math.max(map.getZoom(), 15));
+                    clearSuggest();
+                });
+                suggestBox.appendChild(b);
+            }
+            if (addrInput) {
+                addrInput.addEventListener('input', function () {
+                    var q = (addrInput.value || '').trim();
+                    if (addrTimer) clearTimeout(addrTimer);
+                    if (q.length < 3) { clearSuggest(); return; }
+                    addrTimer = setTimeout(function () {
+                        fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(q), {
+                            headers: { 'Accept': 'application/json' }
+                        })
+                        .then(function (r) { return r.json(); })
+                        .then(function (items) {
+                            clearSuggest();
+                            (items || []).forEach(function (it) {
+                                addSuggestItem(it.display_name, it.lat, it.lon);
+                            });
+                        })
+                        .catch(function () { clearSuggest(); });
+                    }, 400);
+                });
+            }
+
+            // default start mode = gps
+            setStartMode('gps');
+
             function decodeOsrmLonLat(coords) {
                 return coords.map(function (pair) { return [pair[1], pair[0]]; });
             }
 
             document.getElementById('order-btn').onclick = function () {
+                if (window.selectedLat == null || window.selectedLon == null) {
+                    alert('Оберіть пункт призначення на мапі.');
+                    return;
+                }
                 if (routeLine) map.removeLayer(routeLine);
 
                 var sLon = startPoint[1], sLat = startPoint[0];
@@ -456,19 +738,46 @@
                         routeLine = L.polyline([startPoint, [window.selectedLat, window.selectedLon]], { color: '#ffdd00', weight: 6 }).addTo(map);
                     })
                     .then(function () {
+                        var paymentLabel = paymentMethod === 'card' ? 'Картка (Lemon Squeezy)' : 'Готівка';
+                        var approve = window.confirm(
+                            'Підтвердити замовлення?\n'
+                            + 'Клас: ' + passengerTier + '\n'
+                            + 'Оплата: ' + paymentLabel + '\n'
+                            + 'Маршрут уже побудовано на мапі.'
+                        );
+                        if (!approve) {
+                            throw new Error('ORDER_CANCELLED_BY_USER');
+                        }
                         return postJson(API.create, {
                             start_lat: startPoint[0], start_lon: startPoint[1],
                             end_lat: window.selectedLat, end_lon: window.selectedLon,
-                            service_tier: passengerTier
+                            service_tier: passengerTier,
+                            driver_user_id: selectedDriverUserId,
+                            payment_method: paymentMethod
                         });
                     })
                     .then(function (res) { return res.json(); })
                     .then(function (data) {
                         if (data.price != null) {
-                            alert('Замовлення створено! Ціна: ' + data.price + ' (клас ' + passengerTier + ')');
+                            var driverText = '';
+                            if (data.assigned_driver) {
+                                driverText = '\nВодій: ' + (data.assigned_driver.name || data.assigned_driver.user_id);
+                                if (data.assigned_driver.is_bot) driverText += ' (бот)';
+                            }
+                            if (data.payment_method === 'card' && data.payment_url) {
+                                alert('Замовлення #' + data.order_id + ' створено. Ціна: ' + data.price + driverText + '\nЗараз буде відкрито оплату карткою.');
+                                // Redirect на сторінку чекауту стороннього мерчанта (Lemon Squeezy).
+                                window.location.href = data.payment_url;
+                            } else {
+                                alert('Замовлення #' + data.order_id + ' створено! Ціна: ' + data.price + ' (клас ' + passengerTier + ')' + driverText);
+                            }
                         } else {
                             alert(data.detail || data.error || data.message || 'Помилка замовлення');
                         }
+                    })
+                    .catch(function (err) {
+                        if (err && err.message === 'ORDER_CANCELLED_BY_USER') return;
+                        if (err) alert('Не вдалося створити замовлення.');
                     });
             };
         })();
