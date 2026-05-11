@@ -5,6 +5,7 @@ class UserProfile(models.Model):
     ROLE_CHOICES = (
         ('passenger', 'Пасажир'),
         ('driver', 'Водій'),
+        ('support', 'Підтримка'),
     )
     DRIVER_TARIFF_CHOICES = (
         ('economy', 'Економ'),
@@ -27,6 +28,7 @@ class UserProfile(models.Model):
     car_model = models.CharField(max_length=64, blank=True, default="")
     car_plate = models.CharField(max_length=16, blank=True, default="")
     driver_bio = models.CharField(max_length=160, blank=True, default="")
+    location_city = models.CharField(max_length=120, blank=True, default="")
     is_bot_driver = models.BooleanField(default=False)
     lat = models.FloatField(null=True, blank=True)
     lon = models.FloatField(null=True, blank=True)
@@ -86,3 +88,37 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Замовлення {self.id} — {self.status}"
+
+
+class PromoCode(models.Model):
+    code = models.CharField(max_length=32, unique=True)
+    discount_percent = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.code} ({self.discount_percent}%)"
+
+
+class SupportTicket(models.Model):
+    STATUS_CHOICES = (
+        ("open", "Відкрито"),
+        ("closed", "Закрито"),
+    )
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="support_tickets")
+    subject = models.CharField(max_length=160)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="open")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Ticket #{self.pk} — {self.subject}"
+
+
+class SupportMessage(models.Model):
+    ticket = models.ForeignKey(SupportTicket, on_delete=models.CASCADE, related_name="messages")
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="support_messages")
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Msg #{self.pk} in ticket #{self.ticket_id}"

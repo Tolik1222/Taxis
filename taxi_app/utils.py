@@ -1,6 +1,7 @@
 import requests
 
 OSRM_BASE = "https://router.project-osrm.org/route/v1/driving"
+DEFAULT_CURRENCY = "UAH"
 
 
 def get_route_info(lat1, lon1, lat2, lon2):
@@ -29,3 +30,40 @@ def calculate_price(distance_km, tier='standard'):
         return None
     cfg = TIER_RULES.get(tier, TIER_RULES['standard'])
     return round(cfg['base'] + distance_km * cfg['per_km'], 2)
+
+
+def calculate_price_details(distance_km, tier='standard'):
+    if distance_km is None:
+        return None
+    cfg = TIER_RULES.get(tier, TIER_RULES['standard'])
+    total = round(cfg['base'] + distance_km * cfg['per_km'], 2)
+    return {
+        "currency": DEFAULT_CURRENCY,
+        "distance_km": round(float(distance_km), 2),
+        "base_fare": round(float(cfg["base"]), 2),
+        "per_km_rate": round(float(cfg["per_km"]), 2),
+        "total": total,
+    }
+
+
+def geocode_city(city_name):
+    city = (city_name or "").strip()
+    if not city:
+        return None, None
+    url = (
+        "https://nominatim.openstreetmap.org/search?"
+        f"format=json&limit=1&q={requests.utils.quote(city)}"
+    )
+    try:
+        response = requests.get(
+            url,
+            headers={"Accept": "application/json", "User-Agent": "TaxiPro/1.0"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        items = response.json() or []
+        if not items:
+            return None, None
+        return float(items[0]["lat"]), float(items[0]["lon"])
+    except (requests.RequestException, KeyError, ValueError, TypeError):
+        return None, None

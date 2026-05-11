@@ -4,7 +4,11 @@ import hmac
 import hashlib
 import math
 import random
+from urllib.parse import quote_plus
 import stripe
+from django.http import HttpResponse, JsonResponse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -16,11 +20,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Order, UserProfile
-from .utils import TIER_RULES, get_route_info, calculate_price
+from .models import Order, UserProfile, PromoCode, SupportTicket, SupportMessage
+from .utils import TIER_RULES, get_route_info, calculate_price_details, DEFAULT_CURRENCY, geocode_city
 
 
 def _get_profile(user):
@@ -28,6 +33,14 @@ def _get_profile(user):
     if profile is None:
         profile = UserProfile.objects.create(user=user, role='passenger')
     return profile
+
+
+def _is_support_or_admin(user):
+    if not user.is_authenticated:
+        return False
+    if user.is_staff or user.is_superuser:
+        return True
+    return _get_profile(user).role == "support"
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):
@@ -179,6 +192,7 @@ def index_page(request):
                 not request.user.is_authenticated
                 and request.GET.get('tg_err') == '1'
             ),
+            'telegram_login_reason': request.GET.get('tg_reason', ''),
         },
     )
 
@@ -304,7 +318,7 @@ def _complete_telegram_login(request, data):
             profile.telegram_id = tid
             profile.save()
 
-    login(request, user)
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
     if created:
         request.session['show_role_confirmation'] = True
 
@@ -318,8 +332,33 @@ def telegram_login_callback(request):
 
     ok, err_response = _complete_telegram_login(request, data)
     if not ok:
-        return redirect(reverse('index') + '?tg_err=1')
-    return redirect('index')
+        reason = ""
+        if err_response is not None:
+            reason = str(getattr(err_response, "data", {}).get("error", "") or "")
+        suffix = f"&tg_reason={quote_plus(reason)}" if reason else ""
+        return redirect(reverse('index') + f'?tg_err=1{suffix}')
+    app_url = reverse("index")
+    return HttpResponse(
+        f"""
+        <!doctype html>
+        <html>
+        <body>
+        <script>
+          try {{
+            if (window.opener) {{
+              window.opener.location.href = "{app_url}";
+              window.close();
+            }} else {{
+              window.location.href = "{app_url}";
+            }}
+          }} catch (e) {{
+            window.location.href = "{app_url}";
+          }}
+        </script>
+        </body>
+        </html>
+        """.strip()
+    )
 
 
 @api_view(['POST'])
@@ -342,6 +381,7 @@ def create_order_api(request):
         service_tier = data.get('service_tier', 'standard')
         driver_user_id = data.get("driver_user_id")
         payment_method = data.get("payment_method", "cash")
+        promo_code_raw = (data.get("promo_code") or "").strip().upper()
 
         if service_tier not in TIER_RULES:
             return Response({"error": "Невідомий клас поїздки"}, status=400)
@@ -357,7 +397,20 @@ def create_order_api(request):
         if distance_km is None:
             return Response({"error": "Could not compute route"}, status=502)
 
-        price = calculate_price(distance_km, tier=service_tier)
+        price_info = calculate_price_details(distance_km, tier=service_tier)
+        if not price_info:
+            return Response({"error": "Could not compute price"}, status=502)
+        price = price_info["total"]
+        promo_applied = None
+        if promo_code_raw:
+            promo = PromoCode.objects.filter(code=promo_code_raw, is_active=True).first()
+            if promo is None:
+                return Response({"error": "Промокод не знайдено або неактивний"}, status=400)
+            if promo.expires_at and promo.expires_at < timezone.now():
+                return Response({"error": "Термін дії промокоду минув"}, status=400)
+            discount = max(0, min(100, int(promo.discount_percent)))
+            price = round(price * (100 - discount) / 100, 2)
+            promo_applied = {"code": promo.code, "discount_percent": discount}
 
         user = request.user
         passenger_name = (user.first_name or "").strip() or user.username
@@ -398,6 +451,7 @@ def create_order_api(request):
             if best_profile:
                 driver = best_profile.user
 
+        explicit_driver_selected = driver_user_id not in (None, "", 0)
         order = Order.objects.create(
             passenger=user,
             driver=driver,
@@ -411,7 +465,7 @@ def create_order_api(request):
             price=price,
             payment_method=payment_method,
             payment_status="pending" if payment_method == "card" else "not_required",
-            status="new",
+            status="searching" if explicit_driver_selected else "new",
         )
 
         checkout_url = None
@@ -429,6 +483,7 @@ def create_order_api(request):
             "status": "success",
             "order_id": order.id,
             "price": price,
+            "currency": DEFAULT_CURRENCY,
             "payment_method": payment_method,
             "payment_status": order.payment_status,
             "payment_url": checkout_url,
@@ -443,11 +498,54 @@ def create_order_api(request):
                 if driver
                 else None
             ),
+            "driver_request_sent": bool(explicit_driver_selected and driver is not None),
+            "promo_applied": promo_applied,
         })
 
     except Exception as e:
         print(f"Error creating order: {e}")
         return Response({"status": "error", "message": str(e)}, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def estimate_price_api(request):
+    """
+    Public endpoint для попереднього розрахунку ціни.
+    Працює без логіна, щоб фронт не падав з "Authentication credentials were not provided".
+    """
+    try:
+        start_lat = request.query_params.get('start_lat')
+        start_lon = request.query_params.get('start_lon')
+        end_lat = request.query_params.get('end_lat')
+        end_lon = request.query_params.get('end_lon')
+        service_tier = request.query_params.get('service_tier', 'standard')
+
+        if service_tier not in TIER_RULES:
+            return Response({"error": "Невідомий клас поїздки"}, status=400)
+        if not all([start_lat, start_lon, end_lat, end_lon]):
+            return Response({"error": "Missing coordinates"}, status=400)
+
+        distance_km, duration_mins = get_route_info(
+            float(start_lat), float(start_lon), float(end_lat), float(end_lon)
+        )
+        if distance_km is None:
+            return Response({"error": "Could not compute route"}, status=502)
+
+        price_info = calculate_price_details(distance_km, tier=service_tier)
+        if not price_info:
+            return Response({"error": "Could not compute price"}, status=502)
+
+        return Response({
+            "status": "ok",
+            "price": price_info["total"],
+            "currency": price_info["currency"],
+            "distance_km": price_info["distance_km"],
+            "duration_mins": round(float(duration_mins), 1) if duration_mins is not None else None,
+            "tier": service_tier,
+        })
+    except (TypeError, ValueError):
+        return Response({"error": "Invalid coordinates"}, status=400)
 
 
 @api_view(['GET'])
@@ -463,6 +561,9 @@ def api_me(request):
             "is_online": p.is_online,
             "tariff_plan": p.tariff_plan,
             "phone": p.phone,
+            "location_city": p.location_city,
+            "lat": p.lat,
+            "lon": p.lon,
             "car_make": p.car_make,
             "car_model": p.car_model,
             "car_plate": p.car_plate,
@@ -475,8 +576,10 @@ def api_me(request):
 @permission_classes([IsAuthenticated])
 def api_set_role(request):
     role = request.data.get('role')
-    if role not in ('passenger', 'driver'):
+    if role not in ('passenger', 'driver', 'support'):
         return Response({"error": "Невідома роль"}, status=400)
+    if role == "support" and not (request.user.is_staff or request.user.is_superuser):
+        return Response({"error": "Роль support може призначати тільки адміністратор"}, status=403)
     p = _get_profile(request.user)
     p.role = role
     p.save(update_fields=['role'])
@@ -544,6 +647,30 @@ def api_drivers_online(request):
     return Response({"items": items})
 
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def api_passenger_profile_update(request):
+    p = _get_profile(request.user)
+    if p.role != "passenger":
+        return Response({"error": "Доступно лише для пасажира"}, status=403)
+
+    phone = (request.data.get("phone") or "").strip()
+    location_city = (request.data.get("location_city") or "").strip()
+    lat = None
+    lon = None
+    if location_city:
+        lat, lon = geocode_city(location_city)
+        if lat is None or lon is None:
+            return Response({"error": "Не вдалося знайти це місто"}, status=400)
+
+    p.phone = phone[:32]
+    p.location_city = location_city[:120]
+    p.lat = lat
+    p.lon = lon
+    p.save(update_fields=["phone", "location_city", "lat", "lon"])
+    return Response({"status": "ok", "phone": p.phone, "location_city": p.location_city, "lat": p.lat, "lon": p.lon})
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def api_drivers_map(request):
@@ -597,3 +724,129 @@ def api_driver_profile_update(request):
     p.save(update_fields=["phone", "car_make", "car_model", "car_plate", "driver_bio"])
 
     return Response({"status": "ok"})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def api_orders_history(request):
+    p = _get_profile(request.user)
+    if p.role == "driver":
+        qs = Order.objects.filter(driver=request.user)
+    else:
+        qs = Order.objects.filter(passenger=request.user)
+    qs = qs.order_by("-created_at")[:50]
+    items = []
+    for o in qs:
+        items.append(
+            {
+                "id": o.id,
+                "status": o.status,
+                "service_tier": o.service_tier,
+                "price": float(o.price) if o.price is not None else None,
+                "payment_status": o.payment_status,
+                "created_at": o.created_at.isoformat(),
+            }
+        )
+    return Response({"items": items})
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def api_support_tickets(request):
+    if request.method == "GET":
+        if _is_support_or_admin(request.user):
+            qs = SupportTicket.objects.select_related("author").order_by("-created_at")[:100]
+        else:
+            qs = SupportTicket.objects.select_related("author").filter(author=request.user).order_by("-created_at")[:100]
+        items = []
+        for t in qs:
+            items.append(
+                {
+                    "id": t.id,
+                    "subject": t.subject,
+                    "status": t.status,
+                    "author": t.author.username,
+                    "created_at": t.created_at.isoformat(),
+                }
+            )
+        return Response({"items": items})
+
+    subject = (request.data.get("subject") or "").strip()
+    body = (request.data.get("message") or "").strip()
+    if not subject or not body:
+        return Response({"error": "subject і message обов'язкові"}, status=400)
+    ticket = SupportTicket.objects.create(author=request.user, subject=subject[:160], status="open")
+    SupportMessage.objects.create(ticket=ticket, author=request.user, body=body)
+    return Response({"status": "ok", "ticket_id": ticket.id})
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def api_support_ticket_messages(request, ticket_id):
+    ticket = SupportTicket.objects.select_related("author").filter(pk=ticket_id).first()
+    if ticket is None:
+        return Response({"error": "Тікет не знайдено"}, status=404)
+    can_moderate = _is_support_or_admin(request.user)
+    if not can_moderate and ticket.author_id != request.user.id:
+        return Response({"error": "Немає доступу до тікета"}, status=403)
+
+    if request.method == "GET":
+        msgs = ticket.messages.select_related("author").order_by("created_at")
+        return Response(
+            {
+                "ticket": {
+                    "id": ticket.id,
+                    "subject": ticket.subject,
+                    "status": ticket.status,
+                    "author": ticket.author.username,
+                },
+                "items": [
+                    {
+                        "id": m.id,
+                        "author": m.author.username,
+                        "is_support_reply": _is_support_or_admin(m.author),
+                        "body": m.body,
+                        "created_at": m.created_at.isoformat(),
+                    }
+                    for m in msgs
+                ],
+            }
+        )
+
+    body = (request.data.get("message") or "").strip()
+    if not body:
+        return Response({"error": "message обов'язкове"}, status=400)
+    if ticket.status != "open" and not can_moderate:
+        return Response({"error": "Тікет закрито"}, status=400)
+    SupportMessage.objects.create(ticket=ticket, author=request.user, body=body)
+    new_status = (request.data.get("status") or "").strip().lower()
+    if can_moderate and new_status in ("open", "closed") and new_status != ticket.status:
+        ticket.status = new_status
+        ticket.save(update_fields=["status"])
+    return Response({"status": "ok"})
+
+
+@csrf_exempt
+def stripe_webhook(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    secret = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
+    if not secret:
+        return JsonResponse({"error": "Webhook secret is not configured"}, status=500)
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
+    try:
+        event = stripe.Webhook.construct_event(payload=payload, sig_header=sig_header, secret=secret)
+    except Exception:
+        return JsonResponse({"error": "Invalid signature"}, status=400)
+
+    if event.get("type") == "checkout.session.completed":
+        session = (event.get("data") or {}).get("object") or {}
+        order_id = (session.get("metadata") or {}).get("order_id") or session.get("client_reference_id")
+        if order_id:
+            order = Order.objects.filter(pk=order_id).first()
+            if order:
+                order.payment_status = "paid"
+                order.paddle_transaction_id = session.get("id", "")[:64]
+                order.save(update_fields=["payment_status", "paddle_transaction_id"])
+    return JsonResponse({"received": True})
