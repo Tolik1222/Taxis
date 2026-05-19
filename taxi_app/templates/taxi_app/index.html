@@ -682,8 +682,7 @@
             <p class="sub">Увійдіть через Telegram, щоб замовляти поїздки або приймати їх як водій.</p>
             {% if telegram_login_hint %}
             <p class="hint" style="color:#f88;margin-bottom:12px;">Не вдалося підтвердити вхід (токен, час або домен).
-                Перевір BotFather та <code style="color:var(--primary)">TELEGRAM_BOT_TOKEN</code>{% if
-                telegram_login_reason %}. Деталі: {{ telegram_login_reason }}{% endif %}.</p>
+                Перевір BotFather та <code style="color:var(--primary)">TELEGRAM_BOT_TOKEN</code>{% if telegram_login_reason %}. Деталі: {{ telegram_login_reason }}{% endif %}.</p>
             {% endif %}
             <script async src="https://telegram.org/js/telegram-widget.js?22"
                 data-telegram-login="{{ telegram_bot_username }}" data-size="large" data-onauth="onTelegramAuth(user)"
@@ -773,7 +772,7 @@
                 <!-- Map Tab Pane (Active Workflows) -->
                 <div id="tab-pane-map" class="tab-pane active" style="display:flex;">
                     <!-- Passenger UI -->
-                    <div id="passenger-ui" {% if profile.role !='passenger' %}style="display:none" {% endif %}>
+                    <div id="passenger-ui" {% if profile.role != 'passenger' %}style="display:none" {% endif %}>
                         <!-- Form for Booking -->
                         <div id="passenger-order-form">
                             <label class="row-label">Звідки їдемо</label>
@@ -975,7 +974,7 @@
                     </div>
 
                     <!-- Support agent fallback -->
-                    <div id="support-ui" {% if profile.role !='support' %}style="display:none" {% endif %}>
+                    <div id="support-ui" {% if profile.role != 'support' %}style="display:none" {% endif %}>
                         <p style="margin:0 0 4px;">Режим підтримки</p>
                         <p class="hint" style="margin-top:0;">Перейдіть у вкладку "Підтримка" в меню нижче для керування
                             тікетами.</p>
