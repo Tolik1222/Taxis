@@ -885,13 +885,12 @@
                     </div>
 
                     <!-- Driver UI -->
-                    <div id="driver-ui" {% if profile.role !='driver' %}style="display:none" {% endif %}>
+                    <div id="driver-ui" {% if profile.role != 'driver' %}style="display:none" {% endif %}>
                         <!-- Shift Control -->
                         <div id="driver-shift-panel">
                             <p style="margin:0 0 4px;">Режим водія</p>
                             <p class="hint" style="margin-top:0;">Статус: <span id="driver-status-badge"
-                                    class="{% if profile.is_online %}badge-on{% else %}badge-off{% endif %}">{% if
-                                    profile.is_online %}На лінії{% else %}Офлайн{% endif %}</span></p>
+                                    class="{% if profile.is_online %}badge-on{% else %}badge-off{% endif %}">{% if profile.is_online %}На лінії{% else %}Офлайн{% endif %}</span></p>
 
                             <label class="row-label">Тариф зміни</label>
                             <div class="chips-row" id="driver-tariff-chips">
@@ -908,10 +907,8 @@
                             <p class="hint">Тариф визначає замовлення, які ви будете отримувати.</p>
 
                             <div id="driver-shift-row">
-                                <button type="button" id="btn-shift-start" class="btn-big btn-success" {% if
-                                    profile.is_online %}style="display:none" {% endif %}>Почати зміну</button>
-                                <button type="button" id="btn-shift-end" class="btn-big btn-secondary" {% if not
-                                    profile.is_online %}style="display:none" {% endif %}>Закінчити зміну</button>
+                                <button type="button" id="btn-shift-start" class="btn-big btn-success" {% if profile.is_online %}style="display:none" {% endif %}>Почати зміну</button>
+                                <button type="button" id="btn-shift-end" class="btn-big btn-secondary" {% if not profile.is_online %}style="display:none" {% endif %}>Закінчити зміну</button>
                             </div>
                         </div>
 
