@@ -173,6 +173,31 @@ def _create_stripe_checkout(order, request, amount, payment_type="deposit"):
 
 @ensure_csrf_cookie
 def index_page(request):
+    paid = request.GET.get('paid')
+    order_id = request.GET.get('order_id')
+    session_id = request.GET.get('session_id')
+
+    if paid == '1' and order_id and session_id:
+        try:
+            stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+            session = stripe.checkout.Session.retrieve(session_id)
+            if session.payment_status == "paid":
+                order = Order.objects.filter(pk=order_id).first()
+                if order:
+                    payment_type = session.metadata.get("payment_type", "deposit") if getattr(session, "metadata", None) else "deposit"
+                    if payment_type == "deposit" and order.payment_status in ["pending_deposit", "pending"]:
+                        order.payment_status = "deposit_paid"
+                        if order.status == "new":
+                            order.status = "searching"
+                        order.paddle_transaction_id = session.id[:64]
+                        order.save(update_fields=["payment_status", "status", "paddle_transaction_id"])
+                    elif payment_type == "remainder" and order.payment_status == "pending_remainder":
+                        order.payment_status = "paid"
+                        order.paddle_transaction_id = session.id[:64]
+                        order.save(update_fields=["payment_status", "paddle_transaction_id"])
+        except Exception as e:
+            print("Stripe sync check error:", e)
+
     profile = None
     if request.user.is_authenticated:
         profile = _get_profile(request.user)

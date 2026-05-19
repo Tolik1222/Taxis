@@ -1530,6 +1530,9 @@
                 var ll = startMarker.getLatLng();
                 startPoint = [ll.lat, ll.lng];
                 updateFarePreview();
+                if (window.selectedLat != null && window.selectedLon != null) {
+                    drawActiveRoute(startPoint[0], startPoint[1], window.selectedLat, window.selectedLon);
+                }
             });
 
             map.on('click', function (e) {
@@ -1540,16 +1543,21 @@
                     startPickArmed = false;
                     var infoStart = document.getElementById('info');
                     if (infoStart) infoStart.textContent = 'Старт встановлено. Тепер обери пункт призначення.';
+                    if (window.selectedLat != null && window.selectedLon != null) {
+                        drawActiveRoute(startPoint[0], startPoint[1], window.selectedLat, window.selectedLon);
+                    }
                     return;
                 }
-                if (destinationMarker) map.removeLayer(destinationMarker);
-                destinationMarker = L.marker(e.latlng, { icon: endIcon }).addTo(map);
+                
+                window.selectedLat = e.latlng.lat;
+                window.selectedLon = e.latlng.lng;
+                
+                drawActiveRoute(startPoint[0], startPoint[1], window.selectedLat, window.selectedLon);
+
                 var ob = document.getElementById('order-btn');
                 if (ob) { ob.style.display = 'block'; ob.classList.remove('big-hidden'); }
                 var info = document.getElementById('info');
                 if (info) info.textContent = 'Точку призначення обрано.';
-                window.selectedLat = e.latlng.lat;
-                window.selectedLon = e.latlng.lng;
                 updateFarePreview();
             });
 
@@ -1573,6 +1581,10 @@
                     startMarker.setLatLng(ll);
                     map.setView(startPoint, Math.max(map.getZoom(), 15));
                     clearSuggest();
+                    if (window.selectedLat != null && window.selectedLon != null) {
+                        drawActiveRoute(startPoint[0], startPoint[1], window.selectedLat, window.selectedLon);
+                    }
+                    updateFarePreview();
                 });
                 suggestBox.appendChild(b);
             }
@@ -1609,51 +1621,27 @@
                     alert('Оберіть пункт призначення на мапі.');
                     return;
                 }
-                if (routeLine) map.removeLayer(routeLine);
-
-                var sLon = startPoint[1], sLat = startPoint[0];
-                var eLon = window.selectedLon, eLat = window.selectedLat;
-                var osrmUrl = 'https://router.project-osrm.org/route/v1/driving/'
-                    + sLon + ',' + sLat + ';' + eLon + ',' + eLat
-                    + '?overview=full&geometries=geojson';
-
-                fetch(osrmUrl)
-                    .then(function (r) { return r.json(); })
-                    .then(function (routeJson) {
-                        var latlngs;
-                        try {
-                            var geom = routeJson.routes[0].geometry;
-                            latlngs = decodeOsrmLonLat(geom.coordinates);
-                        } catch (e) {
-                            latlngs = [startPoint, [window.selectedLat, window.selectedLon]];
-                        }
-                        routeLine = L.polyline(latlngs, { color: '#ffdd00', weight: 6, opacity: 0.92 }).addTo(map);
-                        map.fitBounds(routeLine.getBounds(), { padding: [48, 48] });
-                    })
-                    .catch(function () {
-                        routeLine = L.polyline([startPoint, [window.selectedLat, window.selectedLon]], { color: '#ffdd00', weight: 6 }).addTo(map);
-                    })
-                    .then(function () {
-                        var paymentLabel = paymentMethod === 'card' ? 'Картка (Stripe)' : 'Готівка';
-                        var approve = window.confirm(
-                            'Підтвердити замовлення?\n'
-                            + 'Клас: ' + passengerTier + '\n'
-                            + 'Оплата: ' + paymentLabel + '\n'
-                            + 'Маршрут уже побудовано на мапі.'
-                        );
-                        if (!approve) {
-                            throw new Error('ORDER_CANCELLED_BY_USER');
-                        }
-                        return postJson(API.create, {
-                            start_lat: startPoint[0], start_lon: startPoint[1],
-                            end_lat: window.selectedLat, end_lon: window.selectedLon,
-                            service_tier: passengerTier,
-                            driver_user_id: selectedDriverUserId,
-                            payment_method: paymentMethod,
-                            promo_code: ((document.getElementById('promo-code') || {}).value || '').trim()
-                        });
-                    })
-                    .then(function (res) { return res.json(); })
+                
+                var paymentLabel = paymentMethod === 'card' ? 'Картка (Stripe)' : 'Готівка';
+                var approve = window.confirm(
+                    'Підтвердити замовлення?\n'
+                    + 'Клас: ' + passengerTier + '\n'
+                    + 'Оплата: ' + paymentLabel + '\n'
+                    + 'Маршрут уже побудовано на мапі.'
+                );
+                if (!approve) {
+                    return;
+                }
+                
+                postJson(API.create, {
+                    start_lat: startPoint[0], start_lon: startPoint[1],
+                    end_lat: window.selectedLat, end_lon: window.selectedLon,
+                    service_tier: passengerTier,
+                    driver_user_id: selectedDriverUserId,
+                    payment_method: paymentMethod,
+                    promo_code: ((document.getElementById('promo-code') || {}).value || '').trim()
+                })
+                .then(function (res) { return res.json(); })
                     .then(function (data) {
                         if (data.price != null) {
                             var driverText = '';
@@ -1683,8 +1671,7 @@
                         }
                     })
                     .catch(function (err) {
-                        if (err && err.message === 'ORDER_CANCELLED_BY_USER') return;
-                        if (err) alert('Не вдалося створити замовлення.');
+                        alert('Не вдалося створити замовлення.');
                     });
             };
 
@@ -1920,15 +1907,15 @@
                             } else if (role === 'driver') {
                                 if (drvShift) drvShift.style.display = 'block';
                                 if (drvPanel) drvPanel.style.display = 'none';
-                            }
-                            
-                            if (routeLine) {
-                                map.removeLayer(routeLine);
-                                routeLine = null;
-                            }
-                            if (destinationMarker) {
-                                map.removeLayer(destinationMarker);
-                                destinationMarker = null;
+                                
+                                if (routeLine) {
+                                    map.removeLayer(routeLine);
+                                    routeLine = null;
+                                }
+                                if (destinationMarker) {
+                                    map.removeLayer(destinationMarker);
+                                    destinationMarker = null;
+                                }
                             }
                             updateActiveDriverMarker(null);
                         }
