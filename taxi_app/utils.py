@@ -15,8 +15,15 @@ def get_route_info(lat1, lon1, lat2, lon2):
         distance_km = route["distance"] / 1000
         duration_mins = route["duration"] / 60
         return distance_km, duration_mins
-    except (requests.RequestException, KeyError, IndexError, ValueError, TypeError):
-        return None, None
+    except Exception:
+        # Fallback to straight line distance
+        try:
+            from .views import _haversine_km
+            dist = _haversine_km(lat1, lon1, lat2, lon2)
+            # Add 30% for road routing and assume 30 km/h average speed (2 mins per km)
+            return dist * 1.3, (dist * 1.3) * 2
+        except Exception:
+            return 5.0, 10.0  # Safe default if all else fails
 
 TIER_RULES = {
     'economy': {'base': 160, 'per_km': 32},
