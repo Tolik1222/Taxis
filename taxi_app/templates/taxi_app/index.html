@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="uk">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,7 +23,10 @@
             --radius: 16px;
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             margin: 0;
@@ -40,23 +44,26 @@
             justify-content: center;
             padding: 24px;
             background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.1), transparent 40%),
-                        radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.08), transparent 40%);
+                radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.08), transparent 40%);
         }
+
         .gate-card {
             width: min(420px, 100%);
             background: var(--card);
             border: 1px solid var(--card-border);
             border-radius: var(--radius);
             padding: 36px 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,.6);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, .6);
             backdrop-filter: blur(20px);
             text-align: center;
         }
+
         .gate-logo {
             font-size: 3rem;
             margin-bottom: 12px;
             filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.3));
         }
+
         .gate-card h1 {
             font-size: 1.6rem;
             margin: 0 0 10px;
@@ -65,6 +72,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         .gate-card p.sub {
             margin: 0 0 28px;
             color: var(--muted);
@@ -81,6 +89,7 @@
             top: 0;
             left: 0;
         }
+
         #screen-app {
             position: relative;
             min-height: 100vh;
@@ -110,15 +119,18 @@
             padding: 20px 24px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
+
         .brand {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 12px;
         }
+
         .brand .logo {
             font-size: 1.8rem;
         }
+
         .brand-name {
             font-size: 1.35rem;
             font-weight: 800;
@@ -126,6 +138,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         .user-info-bar {
             display: flex;
             justify-content: space-between;
@@ -139,6 +152,7 @@
             padding: 4px 20px 14px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
+
         .role-tabs {
             display: flex;
             background: rgba(255, 255, 255, 0.03);
@@ -147,6 +161,7 @@
             padding: 3px;
             width: 100%;
         }
+
         .role-tab {
             flex: 1;
             padding: 8px 12px;
@@ -160,9 +175,11 @@
             transition: all 0.2s ease;
             text-align: center;
         }
+
         .role-tab:hover {
             color: var(--text);
         }
+
         .role-tab.active {
             background: var(--primary-gradient);
             color: #ffffff;
@@ -177,31 +194,38 @@
             display: flex;
             flex-direction: column;
         }
-        
+
         /* Custom scrollbar for sidebar */
         .sidebar-content::-webkit-scrollbar {
             width: 6px;
         }
+
         .sidebar-content::-webkit-scrollbar-track {
             background: transparent;
         }
+
         .sidebar-content::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 99px;
         }
+
         .sidebar-content::-webkit-scrollbar-thumb:hover {
             background: rgba(99, 102, 241, 0.3);
         }
 
-        .tab-pane, .app-modal {
+        .tab-pane,
+        .app-modal {
             display: none;
             animation: fadeIn 0.3s ease;
             flex-direction: column;
             width: 100%;
         }
-        .tab-pane.active, .app-modal.active {
+
+        .tab-pane.active,
+        .app-modal.active {
             display: flex;
         }
+
         .tab-title {
             font-size: 1.15rem;
             font-weight: 700;
@@ -220,11 +244,12 @@
             margin-top: 16px;
             font-weight: 700;
         }
+
         .field {
             width: 100%;
             padding: 12px 16px;
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,.06);
+            border: 1px solid rgba(255, 255, 255, .06);
             background: var(--card2);
             color: var(--text);
             outline: none;
@@ -232,6 +257,7 @@
             font-size: 0.9rem;
             transition: all 0.25s ease;
         }
+
         .field:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px var(--primary-glow);
@@ -243,6 +269,7 @@
             gap: 8px;
             margin: 10px 0;
         }
+
         .chip {
             border: 1px solid rgba(255, 255, 255, 0.05);
             background: rgba(255, 255, 255, 0.03);
@@ -254,10 +281,12 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
+
         .chip:hover {
             color: var(--text);
             border-color: rgba(99, 102, 241, 0.3);
         }
+
         .chip.selected {
             border-color: var(--primary);
             background: var(--primary-glow);
@@ -271,10 +300,11 @@
             gap: 8px;
             margin: 10px 0;
         }
+
         .tier-card {
-            border: 1px solid rgba(255,255,255,.05);
+            border: 1px solid rgba(255, 255, 255, .05);
             border-radius: 12px;
-            background: rgba(255,255,255,.02);
+            background: rgba(255, 255, 255, .02);
             color: var(--muted);
             padding: 12px 8px;
             text-align: center;
@@ -282,26 +312,31 @@
             font-family: inherit;
             transition: all 0.2s ease;
         }
+
         .tier-card:hover {
             border-color: rgba(99, 102, 241, 0.3);
             color: var(--text);
             transform: translateY(-2px);
         }
+
         .tier-card.selected {
             border-color: var(--primary);
             background: var(--primary-glow);
             color: #ffffff;
         }
+
         .tier-icon {
             font-size: 1.3rem;
             display: block;
             margin-bottom: 4px;
         }
+
         .tier-title {
             font-size: .8rem;
             font-weight: 700;
             display: block;
         }
+
         .tier-price {
             font-size: .68rem;
             color: var(--muted);
@@ -311,16 +346,18 @@
 
         .panel {
             background: rgba(255, 255, 255, 0.015);
-            border: 1px solid rgba(255,255,255,.04);
+            border: 1px solid rgba(255, 255, 255, .04);
             border-radius: 12px;
             padding: 12px;
             margin-top: 10px;
         }
+
         .grid2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
+
         .hint {
             margin: 4px 0 0 0;
             font-size: 0.78rem;
@@ -341,27 +378,33 @@
             transition: all 0.2s ease;
             font-family: inherit;
         }
+
         .btn-primary {
             background: var(--primary-gradient);
             color: #ffffff;
             box-shadow: 0 4px 12px var(--primary-glow);
         }
+
         .btn-primary:hover {
             box-shadow: 0 6px 18px rgba(99, 102, 241, 0.5);
             transform: translateY(-1px);
         }
+
         .btn-secondary {
             background: var(--card2);
             color: var(--text);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
+
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.1);
         }
+
         .btn-success {
             background: var(--accent);
             color: #ffffff;
         }
+
         .btn-success:hover {
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
             transform: translateY(-1px);
@@ -385,6 +428,7 @@
             gap: 12px;
             margin-top: 20px;
         }
+
         .pick-card {
             display: flex;
             align-items: center;
@@ -400,14 +444,27 @@
             width: 100%;
             transition: all 0.25s ease;
         }
+
         .pick-card:hover {
             border-color: var(--primary);
             background: var(--primary-glow);
             transform: translateY(-2px);
         }
-        .pick-card .emoji { font-size: 2rem; }
-        .pick-card strong { display: block; margin-bottom: 2px; }
-        .pick-card small { color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
+
+        .pick-card .emoji {
+            font-size: 2rem;
+        }
+
+        .pick-card strong {
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .pick-card small {
+            color: var(--muted);
+            font-size: 0.78rem;
+            line-height: 1.35;
+        }
 
         /* Badges and active order panels */
         .badge-on {
@@ -418,6 +475,7 @@
             font-size: .75rem;
             font-weight: 700;
         }
+
         .badge-off {
             background: rgba(255, 255, 255, 0.05);
             color: var(--muted);
@@ -438,15 +496,17 @@
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
+
         .order-driver-card {
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 16px;
             margin: 14px 0;
             display: grid;
             gap: 6px;
         }
+
         .order-price-tag {
             font-size: 1.6rem;
             font-weight: 800;
@@ -461,6 +521,7 @@
             flex-direction: column;
             gap: 12px;
         }
+
         .support-messages {
             max-height: 160px;
             overflow-y: auto;
@@ -469,6 +530,7 @@
             margin: 8px 0;
             padding-right: 4px;
         }
+
         .support-msg {
             padding: 8px 12px;
             border-radius: 8px;
@@ -476,6 +538,7 @@
             border: 1px solid rgba(255, 255, 255, 0.04);
             font-size: .8rem;
         }
+
         .support-msg.support {
             border-left: 3px solid var(--primary);
             background: rgba(99, 102, 241, 0.04);
@@ -489,6 +552,7 @@
             justify-content: space-between;
             background: rgba(0, 0, 0, 0.15);
         }
+
         .nav-item {
             background: transparent;
             border: none;
@@ -506,26 +570,32 @@
             text-decoration: none;
             font-family: inherit;
         }
+
         .nav-item:hover {
             color: var(--text);
             background: rgba(255, 255, 255, 0.03);
         }
+
         .nav-item.active {
             color: var(--primary);
             background: rgba(99, 102, 241, 0.08);
         }
+
         .nav-icon {
             font-size: 1.25rem;
         }
+
         .nav-text {
             font-size: 0.65rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
+
         .nav-item.logout {
             color: var(--danger);
         }
+
         .nav-item.logout:hover {
             background: rgba(239, 68, 68, 0.08);
         }
@@ -540,6 +610,7 @@
             border: 2px solid #ffffff;
             box-shadow: 0 0 10px var(--primary);
         }
+
         .point-b-icon span {
             width: 14px;
             height: 14px;
@@ -552,20 +623,31 @@
 
         /* Animations */
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         .pulse-animation {
             box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
             animation: pulse 1.6s infinite;
         }
+
         @keyframes pulse {
             0% {
                 box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5);
             }
+
             70% {
                 box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
             }
+
             100% {
                 box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
             }
@@ -582,12 +664,14 @@
                 max-height: 80vh;
                 border-radius: 20px;
             }
+
             #screen-app #map {
                 height: 100vh;
             }
         }
     </style>
 </head>
+
 <body class="{% if user.is_authenticated and not needs_role_gate %}app-{{ profile.role }}-mode{% endif %}">
 
     {% if not user.is_authenticated %}
@@ -597,20 +681,26 @@
             <h1>Taxi Pro</h1>
             <p class="sub">Увійдіть через Telegram, щоб замовляти поїздки або приймати їх як водій.</p>
             {% if telegram_login_hint %}
-            <p class="hint" style="color:#f88;margin-bottom:12px;">Не вдалося підтвердити вхід (токен, час або домен). Перевір BotFather та <code style="color:var(--primary)">TELEGRAM_BOT_TOKEN</code>{% if telegram_login_reason %}. Деталі: {{ telegram_login_reason }}{% endif %}.</p>
+            <p class="hint" style="color:#f88;margin-bottom:12px;">Не вдалося підтвердити вхід (токен, час або домен).
+                Перевір BotFather та <code style="color:var(--primary)">TELEGRAM_BOT_TOKEN</code>{% if
+                telegram_login_reason %}. Деталі: {{ telegram_login_reason }}{% endif %}.</p>
             {% endif %}
             <script async src="https://telegram.org/js/telegram-widget.js?22"
-                data-telegram-login="{{ telegram_bot_username }}"
-                data-size="large"
-                data-onauth="onTelegramAuth(user)"
+                data-telegram-login="{{ telegram_bot_username }}" data-size="large" data-onauth="onTelegramAuth(user)"
                 data-request-access="write">
-            </script>
+                </script>
             <div style="margin-top:14px; display:grid; gap:10px;">
-                <a href="{% url 'login' %}" class="btn-big btn-secondary" style="text-decoration:none; text-align:center; padding:12px 14px; border-radius:12px;">Увійти логіном і паролем</a>
-                <a href="{% url 'register' %}" class="btn-big btn-secondary" style="text-decoration:none; text-align:center; padding:12px 14px; border-radius:12px;">Реєстрація</a>
+                <a href="{% url 'login' %}" class="btn-big btn-secondary"
+                    style="text-decoration:none; text-align:center; padding:12px 14px; border-radius:12px;">Увійти
+                    логіном і паролем</a>
+                <a href="{% url 'register' %}" class="btn-big btn-secondary"
+                    style="text-decoration:none; text-align:center; padding:12px 14px; border-radius:12px;">Реєстрація</a>
             </div>
             {% if not telegram_token_present %}
-            <p class="hint" style="margin-top:16px; color:#f8a;">Змінна <code style="color:var(--primary)">TELEGRAM_BOT_TOKEN</code> не підхопилась (перевір, що сервер завантажує <code>.env</code> або задав її в Environment). Callback: <code style="font-size:0.7rem;">{{ telegram_redirect_uri }}</code></p>
+            <p class="hint" style="margin-top:16px; color:#f8a;">Змінна <code
+                    style="color:var(--primary)">TELEGRAM_BOT_TOKEN</code> не підхопилась (перевір, що сервер завантажує
+                <code>.env</code> або задав її в Environment). Callback: <code
+                    style="font-size:0.7rem;">{{ telegram_redirect_uri }}</code></p>
             {% endif %}
         </div>
     </div>
@@ -643,9 +733,16 @@
         <!-- Unified Sidebar Panel -->
         <div class="sidebar-panel">
             <div class="sidebar-header">
-                <div class="brand">
-                    <span class="logo">🚕</span>
-                    <span class="brand-name">Taxi Pro</span>
+                <div class="brand" style="justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="logo">🚕</span>
+                        <span class="brand-name">Taxi Pro</span>
+                    </div>
+                    {% if telegram_bot_username %}
+                    <a href="https://t.me/{{ telegram_bot_username }}" target="_blank" title="Замовляйте через Telegram Бот" style="display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: #0088cc; color: white; box-shadow: 0 4px 10px rgba(0,136,204,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px; margin-top: 2px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </a>
+                    {% endif %}
                 </div>
                 <div class="user-info-bar">
                     <span>Вітаю, <strong>{{ user.first_name|default:user.username }}</strong></span>
@@ -654,9 +751,12 @@
 
             <div class="role-tabs-container">
                 <div class="role-tabs" role="tablist">
-                    <button type="button" class="role-tab {% if profile.role == 'passenger' %}active{% endif %}" data-role="passenger" id="tab-passenger">Пасажир</button>
-                    <button type="button" class="role-tab {% if profile.role == 'driver' %}active{% endif %}" data-role="driver" id="tab-driver">Водій</button>
-                    <button type="button" class="role-tab {% if profile.role == 'support' %}active{% endif %}" data-role="support" id="tab-support">Support</button>
+                    <button type="button" class="role-tab {% if profile.role == 'passenger' %}active{% endif %}"
+                        data-role="passenger" id="tab-passenger">Пасажир</button>
+                    <button type="button" class="role-tab {% if profile.role == 'driver' %}active{% endif %}"
+                        data-role="driver" id="tab-driver">Водій</button>
+                    <button type="button" class="role-tab {% if profile.role == 'support' %}active{% endif %}"
+                        data-role="support" id="tab-support">Support</button>
                 </div>
             </div>
 
@@ -664,7 +764,7 @@
                 <!-- Map Tab Pane (Active Workflows) -->
                 <div id="tab-pane-map" class="tab-pane active" style="display:flex;">
                     <!-- Passenger UI -->
-                    <div id="passenger-ui" {% if profile.role != 'passenger' %}style="display:none"{% endif %}>
+                    <div id="passenger-ui" {% if profile.role !='passenger' %}style="display:none" {% endif %}>
                         <!-- Form for Booking -->
                         <div id="passenger-order-form">
                             <label class="row-label">Звідки їдемо</label>
@@ -676,10 +776,12 @@
                             <div class="panel" id="start-address-panel" style="display:none;">
                                 <input class="field" id="start-address" placeholder="Введіть адресу старту..." />
                                 <div class="list" id="start-suggest"></div>
-                                <p class="hint" style="margin-top:8px;">Порада: обери підказку — стартовий маркер переміститься.</p>
+                                <p class="hint" style="margin-top:8px;">Порада: обери підказку — стартовий маркер
+                                    переміститься.</p>
                             </div>
                             <div class="panel" id="start-map-panel" style="display:none;">
-                                <p class="hint">Натисни на мапі, щоб поставити старт. Також можна перетягнути стартовий маркер.</p>
+                                <p class="hint">Натисни на мапі, щоб поставити старт. Також можна перетягнути стартовий
+                                    маркер.</p>
                             </div>
 
                             <label class="row-label">Клас поїздки</label>
@@ -700,7 +802,8 @@
                                     <span class="tier-price">Зручний</span>
                                 </button>
                             </div>
-                            <p class="hint" id="tier-hint">Стандарт: базова подача + оптимальна ціна за км. Змініть клас до натискання «Замовити».</p>
+                            <p class="hint" id="tier-hint">Стандарт: базова подача + оптимальна ціна за км. Змініть клас
+                                до натискання «Замовити».</p>
                             <p id="fare-preview" class="fade-in">Орієнтовна ціна: —</p>
 
                             <label class="row-label">Водій</label>
@@ -718,72 +821,97 @@
                             <input class="field" id="promo-code" placeholder="Промокод (опційно)" />
                             <p class="hint" id="payment-hint">Готівка: оплата водію після завершення поїздки.</p>
                             <p id="info" style="margin:12px 0 0;">Натисніть на карту, щоб обрати пункт призначення.</p>
-                            <button type="button" id="order-btn" class="btn-big btn-primary big-hidden">Замовити таксі</button>
+                            <button type="button" id="order-btn" class="btn-big btn-primary big-hidden">Замовити
+                                таксі</button>
                         </div>
 
                         <!-- Passenger Active Order Status Panel -->
                         <div id="passenger-active-order-panel" style="display:none;">
-                            <div class="order-status-badge pulse-animation" id="psg-order-status-badge">Шукаємо водія</div>
+                            <div class="order-status-badge pulse-animation" id="psg-order-status-badge">Шукаємо водія
+                            </div>
                             <p class="hint" id="psg-order-status-desc">Надсилаємо запит водієві...</p>
-                            
+
                             <div class="order-driver-card" id="psg-order-driver-card" style="display:none;">
                                 <label class="row-label" style="margin-top:0; color:var(--primary);">Ваш водій</label>
                                 <strong id="psg-order-driver-name" style="font-size:1.1rem; display:block;">-</strong>
-                                <span id="psg-order-driver-car" style="font-size:0.875rem; color:var(--muted); display:block;">-</span>
-                                <span id="psg-order-driver-plate" style="font-size:0.75rem; background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px; width:fit-content; display:inline-block; margin-top:4px;">-</span>
-                                <a href="#" id="psg-order-driver-phone" class="link-out" style="margin-top:8px; display:inline-block; font-weight:700;">📞 Зателефонувати</a>
+                                <span id="psg-order-driver-car"
+                                    style="font-size:0.875rem; color:var(--muted); display:block;">-</span>
+                                <span id="psg-order-driver-plate"
+                                    style="font-size:0.75rem; background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px; width:fit-content; display:inline-block; margin-top:4px;">-</span>
+                                <a href="#" id="psg-order-driver-phone" class="link-out"
+                                    style="margin-top:8px; display:inline-block; font-weight:700;">📞 Зателефонувати</a>
                             </div>
-                            
+
                             <!-- Split Payment Info for Passenger -->
-                            <div id="psg-payment-split-info" style="display:none; margin:15px 0; padding:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:10px;">
-                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.875rem;">
+                            <div id="psg-payment-split-info"
+                                style="display:none; margin:15px 0; padding:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:10px;">
+                                <div
+                                    style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.875rem;">
                                     <span style="color:var(--muted);">Передплата (депозит):</span>
                                     <span id="psg-payment-deposit" style="font-weight:700;">0.00 UAH</span>
                                 </div>
-                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.875rem;">
+                                <div
+                                    style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.875rem;">
                                     <span style="color:var(--muted);">Очікування (простій):</span>
-                                    <span id="psg-payment-wait" style="font-weight:700; color:var(--danger);">0.00 UAH</span>
+                                    <span id="psg-payment-wait" style="font-weight:700; color:var(--danger);">0.00
+                                        UAH</span>
                                 </div>
-                                <div style="display:flex; justify-content:space-between; font-size:0.875rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px; margin-top:6px;">
+                                <div
+                                    style="display:flex; justify-content:space-between; font-size:0.875rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px; margin-top:6px;">
                                     <span style="color:var(--text); font-weight:600;">Залишок до сплати:</span>
-                                    <span id="psg-payment-remainder" style="font-weight:800; color:var(--primary);">0.00 UAH</span>
+                                    <span id="psg-payment-remainder" style="font-weight:800; color:var(--primary);">0.00
+                                        UAH</span>
                                 </div>
                             </div>
 
                             <div id="psg-stripe-remainder-btn-container" style="display:none; margin:15px 0 10px;">
-                                <a href="#" id="btn-pay-remainder" target="_blank" class="btn-big btn-success" style="display:block; text-align:center; text-decoration:none; margin-top:0;">Оплатити залишок Stripe</a>
+                                <a href="#" id="btn-pay-remainder" target="_blank" class="btn-big btn-success"
+                                    style="display:block; text-align:center; text-decoration:none; margin-top:0;">Оплатити
+                                    залишок Stripe</a>
                             </div>
 
                             <div class="order-price-tag" id="psg-order-price">- UAH</div>
-                            <button type="button" id="btn-cancel-order" class="btn-big btn-secondary" style="margin-top:10px;">Скасувати замовлення</button>
+                            <button type="button" id="btn-cancel-order" class="btn-big btn-secondary"
+                                style="margin-top:10px;">Скасувати замовлення</button>
                         </div>
                     </div>
 
                     <!-- Driver UI -->
-                    <div id="driver-ui" {% if profile.role != 'driver' %}style="display:none"{% endif %}>
+                    <div id="driver-ui" {% if profile.role !='driver' %}style="display:none" {% endif %}>
                         <!-- Shift Control -->
                         <div id="driver-shift-panel">
                             <p style="margin:0 0 4px;">Режим водія</p>
-                            <p class="hint" style="margin-top:0;">Статус: <span id="driver-status-badge" class="{% if profile.is_online %}badge-on{% else %}badge-off{% endif %}">{% if profile.is_online %}На лінії{% else %}Офлайн{% endif %}</span></p>
+                            <p class="hint" style="margin-top:0;">Статус: <span id="driver-status-badge"
+                                    class="{% if profile.is_online %}badge-on{% else %}badge-off{% endif %}">{% if
+                                    profile.is_online %}На лінії{% else %}Офлайн{% endif %}</span></p>
 
                             <label class="row-label">Тариф зміни</label>
                             <div class="chips-row" id="driver-tariff-chips">
-                                <button type="button" class="chip {% if profile.tariff_plan == 'economy' %}selected{% endif %}" data-plan="economy">Економ</button>
-                                <button type="button" class="chip {% if profile.tariff_plan == 'standard' %}selected{% endif %}" data-plan="standard">Стандарт</button>
-                                <button type="button" class="chip {% if profile.tariff_plan == 'comfort' %}selected{% endif %}" data-plan="comfort">Комфорт</button>
+                                <button type="button"
+                                    class="chip {% if profile.tariff_plan == 'economy' %}selected{% endif %}"
+                                    data-plan="economy">Економ</button>
+                                <button type="button"
+                                    class="chip {% if profile.tariff_plan == 'standard' %}selected{% endif %}"
+                                    data-plan="standard">Стандарт</button>
+                                <button type="button"
+                                    class="chip {% if profile.tariff_plan == 'comfort' %}selected{% endif %}"
+                                    data-plan="comfort">Комфорт</button>
                             </div>
                             <p class="hint">Тариф визначає замовлення, які ви будете отримувати.</p>
 
                             <div id="driver-shift-row">
-                                <button type="button" id="btn-shift-start" class="btn-big btn-success" {% if profile.is_online %}style="display:none"{% endif %}>Почати зміну</button>
-                                <button type="button" id="btn-shift-end" class="btn-big btn-secondary" {% if not profile.is_online %}style="display:none"{% endif %}>Закінчити зміну</button>
+                                <button type="button" id="btn-shift-start" class="btn-big btn-success" {% if
+                                    profile.is_online %}style="display:none" {% endif %}>Почати зміну</button>
+                                <button type="button" id="btn-shift-end" class="btn-big btn-secondary" {% if not
+                                    profile.is_online %}style="display:none" {% endif %}>Закінчити зміну</button>
                             </div>
                         </div>
 
                         <!-- Driver Active Order / Request Panel -->
                         <div id="driver-active-order-panel" style="display:none;">
-                            <div class="order-status-badge pulse-animation" id="drv-order-status-badge">Запит на поїздку</div>
-                            
+                            <div class="order-status-badge pulse-animation" id="drv-order-status-badge">Запит на поїздку
+                            </div>
+
                             <div class="panel" style="margin-bottom:12px; display:grid; gap:8px;">
                                 <div>
                                     <label class="row-label" style="margin-top:0;">Пасажир</label>
@@ -791,74 +919,98 @@
                                 </div>
                                 <div>
                                     <label class="row-label">Маршрут</label>
-                                    <span style="font-size:0.875rem; display:block; white-space:pre-line;" id="drv-order-route">-</span>
+                                    <span style="font-size:0.875rem; display:block; white-space:pre-line;"
+                                        id="drv-order-route">-</span>
                                 </div>
                                 <div>
                                     <label class="row-label">Спосіб оплати</label>
-                                    <span style="font-size:0.875rem; display:block; font-weight:700;" id="drv-order-payment">-</span>
+                                    <span style="font-size:0.875rem; display:block; font-weight:700;"
+                                        id="drv-order-payment">-</span>
                                 </div>
                                 <!-- Wait information for driver -->
-                                <div id="drv-wait-info-box" style="display:none; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; margin-top: 4px;">
+                                <div id="drv-wait-info-box"
+                                    style="display:none; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; margin-top: 4px;">
                                     <label class="row-label">Простій / Очікування</label>
-                                    <span style="font-size:0.875rem; display:block; font-weight:700; color:var(--danger);" id="drv-order-wait-desc">0 с (0.00 UAH)</span>
+                                    <span
+                                        style="font-size:0.875rem; display:block; font-weight:700; color:var(--danger);"
+                                        id="drv-order-wait-desc">0 с (0.00 UAH)</span>
                                 </div>
                             </div>
-                            
+
                             <div class="order-price-tag" id="drv-order-price">- UAH</div>
-                            
+
                             <!-- Driver Actions -->
-                            <div id="driver-action-accept-decline" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                                <button type="button" id="btn-accept-order" class="btn-big btn-success" style="margin-top:0;">Прийняти</button>
-                                <button type="button" id="btn-decline-order" class="btn-big btn-secondary" style="margin-top:0;">Відхилити</button>
+                            <div id="driver-action-accept-decline"
+                                style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                <button type="button" id="btn-accept-order" class="btn-big btn-success"
+                                    style="margin-top:0;">Прийняти</button>
+                                <button type="button" id="btn-decline-order" class="btn-big btn-secondary"
+                                    style="margin-top:0;">Відхилити</button>
                             </div>
-                            <div id="driver-action-ride-controls" style="display:none; flex-direction:column; gap:10px;">
+                            <div id="driver-action-ride-controls"
+                                style="display:none; flex-direction:column; gap:10px;">
                                 <!-- Waiting toggle buttons -->
-                                <button type="button" id="btn-start-waiting" class="btn-big btn-primary" style="margin-top:0;">Включити очікування</button>
-                                <button type="button" id="btn-stop-waiting" class="btn-big btn-secondary" style="margin-top:0; display:none;">Виключити очікування</button>
-                                
-                                <button type="button" id="btn-start-ride" class="btn-big btn-success" style="margin-top:0;">Початок поїздки</button>
-                                <button type="button" id="btn-complete-order" class="btn-big btn-success" style="margin-top:0; display:none;">Завершення поїздки</button>
-                                <button type="button" id="btn-cancel-order-driver" class="btn-big btn-secondary" style="margin-top:0;">Скасувати поїздку</button>
+                                <button type="button" id="btn-start-waiting" class="btn-big btn-primary"
+                                    style="margin-top:0;">Включити очікування</button>
+                                <button type="button" id="btn-stop-waiting" class="btn-big btn-secondary"
+                                    style="margin-top:0; display:none;">Виключити очікування</button>
+
+                                <button type="button" id="btn-start-ride" class="btn-big btn-success"
+                                    style="margin-top:0;">Початок поїздки</button>
+                                <button type="button" id="btn-complete-order" class="btn-big btn-success"
+                                    style="margin-top:0; display:none;">Завершення поїздки</button>
+                                <button type="button" id="btn-cancel-order-driver" class="btn-big btn-secondary"
+                                    style="margin-top:0;">Скасувати поїздку</button>
                             </div>
                         </div>
                     </div>
 
                     <!-- Support agent fallback -->
-                    <div id="support-ui" {% if profile.role != 'support' %}style="display:none"{% endif %}>
+                    <div id="support-ui" {% if profile.role !='support' %}style="display:none" {% endif %}>
                         <p style="margin:0 0 4px;">Режим підтримки</p>
-                        <p class="hint" style="margin-top:0;">Перейдіть у вкладку "Підтримка" в меню нижче для керування тікетами.</p>
+                        <p class="hint" style="margin-top:0;">Перейдіть у вкладку "Підтримка" в меню нижче для керування
+                            тікетами.</p>
                     </div>
                 </div>
 
                 <!-- Glassmorphic Modals restructured inside sidebar as panes -->
                 <div id="modal-profile" class="app-modal">
                     <h2 class="tab-title">Налаштування профілю</h2>
-                    
+
                     <!-- Passenger Profile Fields -->
                     <div class="passenger-only">
                         <label class="row-label">Профіль пасажира</label>
                         <div class="panel" style="display:grid; gap:10px;">
-                            <input class="field" id="psg-phone" placeholder="Телефон" value="{{ profile.phone|default:'' }}" />
-                            <input class="field" id="psg-city" placeholder="Місто (наприклад: Київ)" value="{{ profile.location_city|default:'' }}" />
-                            <button type="button" id="btn-save-passenger-profile" class="btn-big btn-primary">Зберегти профіль</button>
+                            <input class="field" id="psg-phone" placeholder="Телефон"
+                                value="{{ profile.phone|default:'' }}" />
+                            <input class="field" id="psg-city" placeholder="Місто (наприклад: Київ)"
+                                value="{{ profile.location_city|default:'' }}" />
+                            <button type="button" id="btn-save-passenger-profile" class="btn-big btn-primary">Зберегти
+                                профіль</button>
                             <p class="hint">Якщо місто вказане, мапа стартує в цьому місті.</p>
                         </div>
                     </div>
-                    
+
                     <!-- Driver Profile Fields -->
                     <div class="driver-only" style="display:none;">
                         <label class="row-label">Профіль водія</label>
                         <div class="panel" style="display:grid; gap:10px;">
-                            <input class="field" id="drv-phone" placeholder="Телефон (для пасажира)" value="{{ profile.phone|default:'' }}" />
+                            <input class="field" id="drv-phone" placeholder="Телефон (для пасажира)"
+                                value="{{ profile.phone|default:'' }}" />
                             <div class="grid2">
-                                <input class="field" id="drv-make" placeholder="Марка авто" value="{{ profile.car_make|default:'' }}" />
-                                <input class="field" id="drv-model" placeholder="Модель" value="{{ profile.car_model|default:'' }}" />
+                                <input class="field" id="drv-make" placeholder="Марка авто"
+                                    value="{{ profile.car_make|default:'' }}" />
+                                <input class="field" id="drv-model" placeholder="Модель"
+                                    value="{{ profile.car_model|default:'' }}" />
                             </div>
                             <div class="grid2">
-                                <input class="field" id="drv-plate" placeholder="Номер авто" value="{{ profile.car_plate|default:'' }}" />
-                                <input class="field" id="drv-bio" placeholder="Коротко про себе" value="{{ profile.driver_bio|default:'' }}" />
+                                <input class="field" id="drv-plate" placeholder="Номер авто"
+                                    value="{{ profile.car_plate|default:'' }}" />
+                                <input class="field" id="drv-bio" placeholder="Коротко про себе"
+                                    value="{{ profile.driver_bio|default:'' }}" />
                             </div>
-                            <button type="button" id="btn-save-driver-profile" class="btn-big btn-primary">Зберегти профіль</button>
+                            <button type="button" id="btn-save-driver-profile" class="btn-big btn-primary">Зберегти
+                                профіль</button>
                             <p class="hint">Ці дані бачить пасажир при виборі водія.</p>
                         </div>
                     </div>
@@ -871,27 +1023,31 @@
 
                 <div id="modal-support" class="app-modal">
                     <h2 class="tab-title">Служба підтримки</h2>
-                    
+
                     <!-- Passenger Support Pane -->
                     <div class="passenger-only">
                         <div class="support-wrap">
                             <label class="row-label" style="margin-top:0;">Створити новий тікет</label>
                             <input class="field" id="support-subject" placeholder="Тема звернення" />
-                            <textarea class="field" id="support-message" placeholder="Опишіть проблему" style="min-height:78px;"></textarea>
-                            <button type="button" id="btn-support-create" class="btn-big btn-primary">Надіслати звернення</button>
+                            <textarea class="field" id="support-message" placeholder="Опишіть проблему"
+                                style="min-height:78px;"></textarea>
+                            <button type="button" id="btn-support-create" class="btn-big btn-primary">Надіслати
+                                звернення</button>
                             <div id="support-tickets-list" class="hint" style="margin-top: 16px;"></div>
                             <div class="support-messages" id="support-messages"></div>
                         </div>
                     </div>
-                    
+
                     <!-- Driver Support Pane -->
                     <div class="driver-only" style="display:none;">
                         <div class="support-wrap">
                             <label class="row-label" style="margin-top:0;">Звернення та відповіді</label>
                             <div id="support-tickets-list-driver" class="hint">Завантаження звернень...</div>
                             <div class="support-messages" id="support-messages-driver"></div>
-                            <textarea class="field" id="support-reply-driver" placeholder="Відповідь у вибраний тікет" style="min-height:78px;"></textarea>
-                            <button type="button" id="btn-support-reply-driver" class="btn-big btn-primary">Відповісти</button>
+                            <textarea class="field" id="support-reply-driver" placeholder="Відповідь у вибраний тікет"
+                                style="min-height:78px;"></textarea>
+                            <button type="button" id="btn-support-reply-driver"
+                                class="btn-big btn-primary">Відповісти</button>
                         </div>
                     </div>
 
@@ -901,16 +1057,25 @@
                             <label class="row-label" style="margin-top:0;">Тікети користувачів</label>
                             <div id="support-tickets-list-support" class="hint">Завантаження звернень...</div>
                             <div class="support-messages" id="support-messages-support"></div>
-                                <textarea class="field" id="support-reply-support" placeholder="Відповідь у вибраний тікет" style="min-height:78px;"></textarea>
-                            <button type="button" id="btn-support-reply-support" class="btn-big btn-primary">Відповісти</button>
+                            <textarea class="field" id="support-reply-support" placeholder="Відповідь у вибраний тікет"
+                                style="min-height:78px;"></textarea>
+                            <button type="button" id="btn-support-reply-support"
+                                class="btn-big btn-primary">Відповісти</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="telegram-promo" style="margin-top:20px; text-align:center; padding: 15px; background: rgba(0, 136, 204, 0.1); border-radius: 12px; border: 1px solid rgba(0, 136, 204, 0.3);">
-                    <p style="margin-bottom: 10px; font-weight: 500; font-size: 14px; color: var(--text-color);">📱 Замовляйте швидше через наш Telegram Бот!</p>
-                    <a href="https://t.me/{{ telegram_bot_username }}" target="_blank" class="btn" style="width:100%; background: #0088cc; color: white; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                <div class="telegram-promo"
+                    style="margin-top:20px; text-align:center; padding: 15px; background: rgba(0, 136, 204, 0.1); border-radius: 12px; border: 1px solid rgba(0, 136, 204, 0.3);">
+                    <p style="margin-bottom: 10px; font-weight: 500; font-size: 14px; color: var(--text-color);">📱
+                        Замовляйте швидше через наш Telegram Бот!</p>
+                    <a href="https://t.me/{{ telegram_bot_username }}" target="_blank" class="btn"
+                        style="width:100%; background: #0088cc; color: white; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
                         Відкрити Telegram
                     </a>
                 </div>
@@ -1057,7 +1222,7 @@
                             fp.textContent = 'Орієнтовна ціна: недоступна';
                         }
                     })
-                    .catch(function () {});
+                    .catch(function () { });
             }
             if (tierCards) {
                 tierCards.querySelectorAll('.tier-card[data-tier]').forEach(function (el) {
@@ -1116,19 +1281,19 @@
                 document.querySelectorAll('.app-nav .nav-item').forEach(function (btn) {
                     btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
                 });
-                
+
                 var paneMap = document.getElementById('tab-pane-map');
                 if (paneMap) paneMap.style.display = 'none';
-                
+
                 document.querySelectorAll('.app-modal').forEach(function (m) {
                     m.style.display = 'none';
                 });
-                
+
                 if (tab === 'map') {
                     if (paneMap) paneMap.style.display = 'flex';
                     return;
                 }
-                
+
                 var modal = document.getElementById('modal-' + tab);
                 if (modal) {
                     modal.style.display = 'flex';
@@ -1225,11 +1390,11 @@
                         car_plate: (document.getElementById('drv-plate') || {}).value,
                         driver_bio: (document.getElementById('drv-bio') || {}).value
                     })
-                    .then(function (r) { return r.json(); })
-                    .then(function (d) {
-                        if (d.status === 'ok') alert('Збережено');
-                        else alert(d.error || 'Помилка');
-                    });
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            if (d.status === 'ok') alert('Збережено');
+                            else alert(d.error || 'Помилка');
+                        });
                 });
             }
             var savePsgBtn = document.getElementById('btn-save-passenger-profile');
@@ -1239,18 +1404,18 @@
                         phone: (document.getElementById('psg-phone') || {}).value,
                         location_city: (document.getElementById('psg-city') || {}).value
                     })
-                    .then(function (r) { return r.json(); })
-                    .then(function (d) {
-                        if (d.status === 'ok') {
-                            if (d.lat != null && d.lon != null) {
-                                startPoint = [d.lat, d.lon];
-                                startMarker.setLatLng(startPoint);
-                                map.setView(startPoint, 13);
-                                updateFarePreview();
-                            }
-                            alert('Профіль пасажира збережено');
-                        } else alert(d.error || 'Помилка');
-                    });
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            if (d.status === 'ok') {
+                                if (d.lat != null && d.lon != null) {
+                                    startPoint = [d.lat, d.lon];
+                                    startMarker.setLatLng(startPoint);
+                                    map.setView(startPoint, 13);
+                                    updateFarePreview();
+                                }
+                                alert('Профіль пасажира збережено');
+                            } else alert(d.error || 'Помилка');
+                        });
                 });
             }
 
@@ -1274,19 +1439,19 @@
                     if (it.distance) {
                         details += '<div style="font-size:0.8rem; color:var(--muted);">📏 Дистанція: ' + it.distance.toFixed(2) + ' км</div>';
                     }
-                    return '<div class="panel" style="margin-bottom:12px; border-left:4px solid ' + 
-                           (it.status === 'completed' ? 'var(--accent)' : 'var(--danger)') + '; padding:12px; display:flex; flex-direction:column; gap:4px;">' +
-                           '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-                               '<strong style="color:var(--text);">Замовлення #' + it.id + '</strong>' +
-                               '<span style="font-size:0.8rem; background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:10px; color:var(--text);">' + it.created_at_label + '</span>' +
-                           '</div>' +
-                           '<div style="font-size:0.9rem; font-weight:700; color:var(--primary); margin-top:4px;">' + it.service_tier_label + ' · ' + it.price.toFixed(2) + ' UAH</div>' +
-                           '<div style="font-size:0.85rem; display:flex; justify-content:space-between; margin-top:2px;">' +
-                               '<span>Статус: <strong style="color:' + (it.status === 'completed' ? 'var(--accent)' : 'var(--danger)') + '">' + it.status_label + '</strong></span>' +
-                               '<span>Оплата: <strong>' + it.payment_status_label + ' (' + it.payment_method_label + ')</strong></span>' +
-                           '</div>' +
-                           details +
-                           '</div>';
+                    return '<div class="panel" style="margin-bottom:12px; border-left:4px solid ' +
+                        (it.status === 'completed' ? 'var(--accent)' : 'var(--danger)') + '; padding:12px; display:flex; flex-direction:column; gap:4px;">' +
+                        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+                        '<strong style="color:var(--text);">Замовлення #' + it.id + '</strong>' +
+                        '<span style="font-size:0.8rem; background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:10px; color:var(--text);">' + it.created_at_label + '</span>' +
+                        '</div>' +
+                        '<div style="font-size:0.9rem; font-weight:700; color:var(--primary); margin-top:4px;">' + it.service_tier_label + ' · ' + it.price.toFixed(2) + ' UAH</div>' +
+                        '<div style="font-size:0.85rem; display:flex; justify-content:space-between; margin-top:2px;">' +
+                        '<span>Статус: <strong style="color:' + (it.status === 'completed' ? 'var(--accent)' : 'var(--danger)') + '">' + it.status_label + '</strong></span>' +
+                        '<span>Оплата: <strong>' + it.payment_status_label + ' (' + it.payment_method_label + ')</strong></span>' +
+                        '</div>' +
+                        details +
+                        '</div>';
                 }).join('');
             }
             function loadOrdersHistory() {
@@ -1556,10 +1721,10 @@
                     }
                     return;
                 }
-                
+
                 window.selectedLat = e.latlng.lat;
                 window.selectedLon = e.latlng.lng;
-                
+
                 drawActiveRoute(startPoint[0], startPoint[1], window.selectedLat, window.selectedLon);
 
                 var ob = document.getElementById('order-btn');
@@ -1605,14 +1770,14 @@
                         fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(q), {
                             headers: { 'Accept': 'application/json' }
                         })
-                        .then(function (r) { return r.json(); })
-                        .then(function (items) {
-                            clearSuggest();
-                            (items || []).forEach(function (it) {
-                                addSuggestItem(it.display_name, it.lat, it.lon);
-                            });
-                        })
-                        .catch(function () { clearSuggest(); });
+                            .then(function (r) { return r.json(); })
+                            .then(function (items) {
+                                clearSuggest();
+                                (items || []).forEach(function (it) {
+                                    addSuggestItem(it.display_name, it.lat, it.lon);
+                                });
+                            })
+                            .catch(function () { clearSuggest(); });
                     }, 400);
                 });
             }
@@ -1629,7 +1794,7 @@
                     alert('Оберіть пункт призначення на мапі.');
                     return;
                 }
-                
+
                 var paymentLabel = paymentMethod === 'card' ? 'Картка (Stripe)' : 'Готівка';
                 var approve = window.confirm(
                     'Підтвердити замовлення?\n'
@@ -1640,7 +1805,7 @@
                 if (!approve) {
                     return;
                 }
-                
+
                 postJson(API.create, {
                     start_lat: startPoint[0], start_lon: startPoint[1],
                     end_lat: window.selectedLat, end_lon: window.selectedLon,
@@ -1649,7 +1814,7 @@
                     payment_method: paymentMethod,
                     promo_code: ((document.getElementById('promo-code') || {}).value || '').trim()
                 })
-                .then(function (res) { return res.json(); })
+                    .then(function (res) { return res.json(); })
                     .then(function (data) {
                         if (data.price != null) {
                             var driverText = '';
@@ -1663,7 +1828,7 @@
                             if (data.promo_applied) {
                                 driverText += '\nПромокод: ' + data.promo_applied.code + ' (-' + data.promo_applied.discount_percent + '%)';
                             }
-                            
+
                             activeOrderId = data.order_id;
                             if (typeof pollActiveOrder === 'function') pollActiveOrder();
 
@@ -1710,16 +1875,16 @@
                         if (activeTab) {
                             role = activeTab.getAttribute('data-role');
                         }
-                        
+
                         var psgPanel = document.getElementById('passenger-active-order-panel');
                         var psgForm = document.getElementById('passenger-order-form');
                         var drvPanel = document.getElementById('driver-active-order-panel');
                         var drvShift = document.getElementById('driver-shift-panel');
-                        
+
                         if (d.has_active && d.order) {
                             var order = d.order;
                             activeOrderId = order.id;
-                            
+
                             if (order.status !== currentOrderStatus) {
                                 if (routeLine) {
                                     map.removeLayer(routeLine);
@@ -1727,18 +1892,18 @@
                                 }
                                 currentOrderStatus = order.status;
                             }
-                            
+
                             if (role === 'passenger') {
                                 if (psgForm) psgForm.style.display = 'none';
                                 if (psgPanel) psgPanel.style.display = 'block';
-                                
+
                                 var badge = document.getElementById('psg-order-status-badge');
                                 var desc = document.getElementById('psg-order-status-desc');
                                 var price = document.getElementById('psg-order-price');
                                 var card = document.getElementById('psg-order-driver-card');
-                                
+
                                 if (price) price.textContent = order.price.toFixed(2) + ' UAH';
-                                
+
                                 if (badge) {
                                     if (order.status === 'new') {
                                         badge.textContent = 'Очікування передплати';
@@ -1793,7 +1958,7 @@
                                     if (splitBox) splitBox.style.display = 'none';
                                     if (btnRemainder) btnRemainder.style.display = 'none';
                                 }
-                                
+
                                 if (order.driver) {
                                     if (card) card.style.display = 'grid';
                                     document.getElementById('psg-order-driver-name').textContent = order.driver.name;
@@ -1813,20 +1978,20 @@
                                     if (card) card.style.display = 'none';
                                     updateActiveDriverMarker(null);
                                 }
-                                
+
                                 if (order.start_lat && order.start_lon && order.end_lat && order.end_lon && !routeLine) {
                                     drawActiveRoute(order.start_lat, order.start_lon, order.end_lat, order.end_lon);
                                 }
                             } else if (role === 'driver') {
                                 if (drvShift) drvShift.style.display = 'none';
                                 if (drvPanel) drvPanel.style.display = 'block';
-                                
+
                                 var badge = document.getElementById('drv-order-status-badge');
                                 var psgName = document.getElementById('drv-order-psg-name');
                                 var routeText = document.getElementById('drv-order-route');
                                 var paymentText = document.getElementById('drv-order-payment');
                                 var price = document.getElementById('drv-order-price');
-                                
+
                                 if (psgName) psgName.textContent = order.passenger_name;
                                 if (price) price.textContent = order.price.toFixed(2) + ' UAH';
                                 if (paymentText) {
@@ -1841,7 +2006,7 @@
                                 if (routeText) {
                                     routeText.textContent = 'Звідки: ' + order.start_lat.toFixed(4) + ', ' + order.start_lon.toFixed(4) + '\nКуди: ' + order.end_lat.toFixed(4) + ', ' + order.end_lon.toFixed(4);
                                 }
-                                
+
                                 // Wait time details display
                                 var drvWaitBox = document.getElementById('drv-wait-info-box');
                                 if (drvWaitBox) {
@@ -1853,7 +2018,7 @@
 
                                 var actDecline = document.getElementById('driver-action-accept-decline');
                                 var rideControls = document.getElementById('driver-action-ride-controls');
-                                
+
                                 if (d.is_offer) {
                                     if (badge) { badge.textContent = 'Нова пропозиція'; badge.className = 'order-status-badge pulse-animation'; }
                                     if (actDecline) actDecline.style.display = 'grid';
@@ -1861,12 +2026,12 @@
                                 } else {
                                     if (actDecline) actDecline.style.display = 'none';
                                     if (rideControls) rideControls.style.display = 'flex';
-                                    
+
                                     var btnStartWait = document.getElementById('btn-start-waiting');
                                     var btnStopWait = document.getElementById('btn-stop-waiting');
                                     var btnStartRide = document.getElementById('btn-start-ride');
                                     var btnComplete = document.getElementById('btn-complete-order');
-                                    
+
                                     if (order.status === 'accepted') {
                                         if (badge) { badge.textContent = 'Прийнято водієм'; badge.className = 'order-status-badge'; }
                                         if (btnStartWait) btnStartWait.style.display = 'block';
@@ -1887,7 +2052,7 @@
                                         if (btnComplete) btnComplete.style.display = 'block';
                                     }
                                 }
-                                
+
                                 if (order.start_lat && order.start_lon && order.end_lat && order.end_lon && !routeLine) {
                                     if (order.status === 'accepted' || order.status === 'waiting') {
                                         // Build route from driver current location to passenger start location
@@ -1908,14 +2073,14 @@
                                 activeOrderId = null;
                                 window.location.reload();
                             }
-                            
+
                             if (role === 'passenger') {
                                 if (psgForm) psgForm.style.display = 'block';
                                 if (psgPanel) psgPanel.style.display = 'none';
                             } else if (role === 'driver') {
                                 if (drvShift) drvShift.style.display = 'block';
                                 if (drvPanel) drvPanel.style.display = 'none';
-                                
+
                                 if (routeLine) {
                                     map.removeLayer(routeLine);
                                     routeLine = null;
@@ -1928,9 +2093,9 @@
                             updateActiveDriverMarker(null);
                         }
                     })
-                    .catch(function () {});
+                    .catch(function () { });
             }
-            
+
             function drawActiveRoute(sLat, sLon, eLat, eLon) {
                 var osrmUrl = 'https://router.project-osrm.org/route/v1/driving/'
                     + sLon + ',' + sLat + ';' + eLon + ',' + eLat
@@ -1948,11 +2113,11 @@
                         }
                         if (routeLine) map.removeLayer(routeLine);
                         routeLine = L.polyline(latlngs, { color: '#ffdd00', weight: 6, opacity: 0.92 }).addTo(map);
-                        
+
                         startMarker.setLatLng([sLat, sLon]);
                         if (destinationMarker) map.removeLayer(destinationMarker);
                         destinationMarker = L.marker([eLat, eLon], { icon: endIcon }).addTo(map);
-                        
+
                         map.fitBounds(routeLine.getBounds(), { padding: [48, 48] });
                     })
                     .catch(function () {
@@ -1962,11 +2127,11 @@
             }
 
             // Action button listeners for active order
-            document.getElementById('btn-cancel-order') && document.getElementById('btn-cancel-order').addEventListener('click', function() {
+            document.getElementById('btn-cancel-order') && document.getElementById('btn-cancel-order').addEventListener('click', function () {
                 if (confirm('Ви дійсно бажаєте скасувати замовлення?')) {
                     postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'cancel' })
-                        .then(function(r) { return r.json(); })
-                        .then(function(d) {
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
                             if (d.status === 'success') {
                                 alert('Замовлення скасовано.');
                                 activeOrderId = null;
@@ -1978,10 +2143,10 @@
                 }
             });
 
-            document.getElementById('btn-accept-order') && document.getElementById('btn-accept-order').addEventListener('click', function() {
+            document.getElementById('btn-accept-order') && document.getElementById('btn-accept-order').addEventListener('click', function () {
                 postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'accept' })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) {
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
                         if (d.status === 'success') {
                             if (routeLine) {
                                 map.removeLayer(routeLine);
@@ -1994,10 +2159,10 @@
                     });
             });
 
-            document.getElementById('btn-decline-order') && document.getElementById('btn-decline-order').addEventListener('click', function() {
+            document.getElementById('btn-decline-order') && document.getElementById('btn-decline-order').addEventListener('click', function () {
                 postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'decline' })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) {
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
                         if (d.status === 'success') {
                             activeOrderId = null;
                             window.location.reload();
@@ -2007,10 +2172,10 @@
                     });
             });
 
-            document.getElementById('btn-start-waiting') && document.getElementById('btn-start-waiting').addEventListener('click', function() {
+            document.getElementById('btn-start-waiting') && document.getElementById('btn-start-waiting').addEventListener('click', function () {
                 postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'start_waiting' })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) {
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
                         if (d.status === 'success') {
                             pollActiveOrder();
                         } else {
@@ -2019,10 +2184,10 @@
                     });
             });
 
-            document.getElementById('btn-stop-waiting') && document.getElementById('btn-stop-waiting').addEventListener('click', function() {
+            document.getElementById('btn-stop-waiting') && document.getElementById('btn-stop-waiting').addEventListener('click', function () {
                 postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'stop_waiting' })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) {
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
                         if (d.status === 'success') {
                             pollActiveOrder();
                         } else {
@@ -2031,10 +2196,10 @@
                     });
             });
 
-            document.getElementById('btn-start-ride') && document.getElementById('btn-start-ride').addEventListener('click', function() {
+            document.getElementById('btn-start-ride') && document.getElementById('btn-start-ride').addEventListener('click', function () {
                 postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'start_ride' })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) {
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
                         if (d.status === 'success') {
                             if (routeLine) {
                                 map.removeLayer(routeLine);
@@ -2047,10 +2212,10 @@
                     });
             });
 
-            document.getElementById('btn-complete-order') && document.getElementById('btn-complete-order').addEventListener('click', function() {
+            document.getElementById('btn-complete-order') && document.getElementById('btn-complete-order').addEventListener('click', function () {
                 postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'complete' })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) {
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
                         if (d.status === 'success') {
                             alert('Вітаємо! Поїздка успішно завершена.');
                             activeOrderId = null;
@@ -2061,11 +2226,11 @@
                     });
             });
 
-            document.getElementById('btn-cancel-order-driver') && document.getElementById('btn-cancel-order-driver').addEventListener('click', function() {
+            document.getElementById('btn-cancel-order-driver') && document.getElementById('btn-cancel-order-driver').addEventListener('click', function () {
                 if (confirm('Скасувати поїздку?')) {
                     postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'cancel' })
-                        .then(function(r) { return r.json(); })
-                        .then(function(d) {
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
                             if (d.status === 'success') {
                                 alert('Поїздку скасовано.');
                                 activeOrderId = null;
@@ -2082,4 +2247,5 @@
         })();
     </script>
 </body>
+
 </html>
