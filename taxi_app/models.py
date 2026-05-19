@@ -41,6 +41,8 @@ class Order(models.Model):
     STATUS_CHOICES = (
         ('new', 'Новий'),
         ('searching', 'Пошук водія'),
+        ('accepted', 'Прийнято водієм'),
+        ('waiting', 'Очікування пасажира'),
         ('in_progress', 'У дорозі'),
         ('completed', 'Завершено'),
         ('cancelled', 'Скасовано'),
@@ -57,7 +59,10 @@ class Order(models.Model):
     PAYMENT_STATUS_CHOICES = (
         ('not_required', 'Не потрібно'),
         ('pending', 'Очікує оплати'),
-        ('paid', 'Оплачено'),
+        ('pending_deposit', 'Очікує передплати'),
+        ('deposit_paid', 'Передплачено (100 грн)'),
+        ('pending_remainder', 'Очікує доплати'),
+        ('paid', 'Повністю оплачено'),
         ('failed', 'Помилка оплати'),
     )
 
@@ -83,6 +88,19 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='not_required')
     paddle_transaction_id = models.CharField(max_length=64, blank=True, default="")
     
+    # Спліт-оплата
+    deposit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    remainder_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    # Простій / очікування
+    waiting_seconds = models.IntegerField(default=0)
+    waiting_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    is_waiting = models.BooleanField(default=False)
+    waiting_started_at = models.DateTimeField(null=True, blank=True)
+
+    # Реєстр водіїв, які відхилили пропозицію
+    declined_by = models.ManyToManyField(User, related_name='declined_orders', blank=True)
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
     created_at = models.DateTimeField(auto_now_add=True)
 

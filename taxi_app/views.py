@@ -111,7 +111,7 @@ def _move_bot_driver(profile):
     profile.save(update_fields=["lat", "lon"])
 
 
-def _create_stripe_checkout(order, request):
+def _create_stripe_checkout(order, request, amount, payment_type="deposit"):
     api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
     if not api_key:
         return {"error": "Stripe не налаштований (STRIPE_SECRET_KEY)."}
@@ -130,7 +130,7 @@ def _create_stripe_checkout(order, request):
         )
         cancel_url = request.build_absolute_uri(reverse("index")) + f"?paid=0&order_id={order.id}"
     currency = (os.getenv("STRIPE_CURRENCY", "usd") or "usd").strip().lower()
-    amount_minor = int(float(order.price) * 100)
+    amount_minor = int(float(amount) * 100)
     if amount_minor <= 0:
         return {"error": "Некоректна сума для Stripe checkout."}
 
@@ -144,14 +144,15 @@ def _create_stripe_checkout(order, request):
             metadata={
                 "order_id": str(order.id),
                 "payment_method": "card",
+                "payment_type": payment_type,
             },
             line_items=[
                 {
                     "price_data": {
                         "currency": currency,
                         "product_data": {
-                            "name": f"Taxi ride #{order.id}",
-                            "description": f"Поїздка класу {order.service_tier}",
+                            "name": f"Taxi Pro #{order.id} ({'Передплата' if payment_type == 'deposit' else 'Доплата'})",
+                            "description": f"Поїздка класу {order.service_tier} (очікування: {order.waiting_seconds}с)",
                         },
                         "unit_amount": amount_minor,
                     },
@@ -452,6 +453,16 @@ def create_order_api(request):
                 driver = best_profile.user
 
         explicit_driver_selected = driver_user_id not in (None, "", 0)
+        
+        deposit_amount = 0.00
+        if payment_method == "card":
+            deposit_amount = min(float(price), 100.0)
+            payment_status = "pending_deposit"
+            status = "new"
+        else:
+            payment_status = "not_required"
+            status = "searching"
+
         order = Order.objects.create(
             passenger=user,
             driver=driver,
@@ -464,13 +475,14 @@ def create_order_api(request):
             distance=distance_km,
             price=price,
             payment_method=payment_method,
-            payment_status="pending" if payment_method == "card" else "not_required",
-            status="searching" if explicit_driver_selected else "new",
+            payment_status=payment_status,
+            deposit_amount=deposit_amount,
+            status=status,
         )
 
         checkout_url = None
         if payment_method == "card":
-            checkout_res = _create_stripe_checkout(order, request)
+            checkout_res = _create_stripe_checkout(order, request, deposit_amount, "deposit")
             if checkout_res.get("error"):
                 order.payment_status = "failed"
                 order.save(update_fields=["payment_status"])
@@ -487,6 +499,7 @@ def create_order_api(request):
             "payment_method": payment_method,
             "payment_status": order.payment_status,
             "payment_url": checkout_url,
+            "deposit_amount": float(deposit_amount),
             "assigned_driver": (
                 {
                     "user_id": driver.id,
@@ -734,17 +747,63 @@ def api_orders_history(request):
         qs = Order.objects.filter(driver=request.user)
     else:
         qs = Order.objects.filter(passenger=request.user)
-    qs = qs.order_by("-created_at")[:50]
+    qs = qs.select_related("driver", "passenger").order_by("-created_at")[:50]
+    
+    status_map = {
+        'new': 'Новий',
+        'searching': 'Пошук водія',
+        'accepted': 'Прийнято водієм',
+        'waiting': 'Очікування пасажира',
+        'in_progress': 'У дорозі',
+        'completed': 'Завершено',
+        'cancelled': 'Скасовано',
+    }
+    
+    pay_status_map = {
+        'not_required': 'Не потрібно',
+        'pending': 'Очікує оплати',
+        'pending_deposit': 'Очікує передплати',
+        'deposit_paid': 'Передплачено (100 грн)',
+        'pending_remainder': 'Очікує доплати',
+        'paid': 'Оплачено повністю',
+        'failed': 'Помилка оплати',
+    }
+
+    tier_map = {
+        'economy': 'Економ',
+        'standard': 'Стандарт',
+        'comfort': 'Комфорт',
+    }
+
     items = []
     for o in qs:
+        driver_name = ""
+        if o.driver:
+            driver_name = o.driver.first_name or o.driver.username
+            
         items.append(
             {
                 "id": o.id,
                 "status": o.status,
+                "status_label": status_map.get(o.status, o.status),
                 "service_tier": o.service_tier,
-                "price": float(o.price) if o.price is not None else None,
+                "service_tier_label": tier_map.get(o.service_tier, o.service_tier),
+                "price": float(o.price) if o.price is not None else 0.0,
+                "payment_method": o.payment_method,
+                "payment_method_label": 'Картка' if o.payment_method == 'card' else 'Готівка',
                 "payment_status": o.payment_status,
+                "payment_status_label": pay_status_map.get(o.payment_status, o.payment_status),
                 "created_at": o.created_at.isoformat(),
+                "created_at_label": o.created_at.strftime("%d.%m.%Y %H:%M"),
+                "start_lat": o.start_lat,
+                "start_lon": o.start_lon,
+                "end_lat": o.end_lat,
+                "end_lon": o.end_lon,
+                "distance": o.distance,
+                "waiting_seconds": o.waiting_seconds,
+                "waiting_price": float(o.waiting_price),
+                "driver_name": driver_name,
+                "passenger_name": o.passenger_name,
             }
         )
     return Response({"items": items})
@@ -843,10 +902,366 @@ def stripe_webhook(request):
     if event.get("type") == "checkout.session.completed":
         session = (event.get("data") or {}).get("object") or {}
         order_id = (session.get("metadata") or {}).get("order_id") or session.get("client_reference_id")
+        payment_type = (session.get("metadata") or {}).get("payment_type", "deposit")
         if order_id:
             order = Order.objects.filter(pk=order_id).first()
             if order:
-                order.payment_status = "paid"
-                order.paddle_transaction_id = session.get("id", "")[:64]
-                order.save(update_fields=["payment_status", "paddle_transaction_id"])
+                if payment_type == "deposit":
+                    order.payment_status = "deposit_paid"
+                    order.status = "searching"
+                    order.paddle_transaction_id = session.get("id", "")[:64]
+                    order.save(update_fields=["payment_status", "status", "paddle_transaction_id"])
+                else:
+                    order.payment_status = "paid"
+                    order.paddle_transaction_id = session.get("id", "")[:64]
+                    order.save(update_fields=["payment_status", "paddle_transaction_id"])
     return JsonResponse({"received": True})
+
+
+def _simulate_bot_order(order):
+    """
+    Симулює рух та життєвий цикл замовлення для водіїв-ботів у реальному часі.
+    Слідує новій схемі статусів (searching -> accepted -> waiting -> in_progress -> completed).
+    """
+    try:
+        driver_profile = order.driver.userprofile if order.driver else None
+    except Exception:
+        driver_profile = None
+
+    elapsed = (timezone.now() - order.created_at).total_seconds()
+
+    if order.status == 'new':
+        if order.payment_method == 'card' and elapsed >= 2:
+            order.payment_status = 'deposit_paid'
+            order.status = 'searching'
+            order.save(update_fields=['payment_status', 'status'])
+
+    elif order.status == 'searching':
+        if elapsed >= 3:
+            bot_profile = UserProfile.objects.select_related("user").filter(
+                role="driver",
+                is_bot_driver=True,
+                is_online=True
+            ).first()
+            if bot_profile:
+                order.driver = bot_profile.user
+                order.status = 'accepted'
+                order.save(update_fields=['driver', 'status'])
+                
+                bot_profile.lat = order.start_lat + random.uniform(-0.005, 0.005)
+                bot_profile.lon = order.start_lon + random.uniform(-0.005, 0.005)
+                bot_profile.save(update_fields=['lat', 'lon'])
+
+    elif order.status == 'accepted':
+        if elapsed >= 7:
+            order.is_waiting = True
+            order.waiting_started_at = timezone.now()
+            order.status = 'waiting'
+            order.save(update_fields=['is_waiting', 'waiting_started_at', 'status'])
+            
+            if driver_profile:
+                driver_profile.lat = order.start_lat
+                driver_profile.lon = order.start_lon
+                driver_profile.save(update_fields=['lat', 'lon'])
+
+    elif order.status == 'waiting':
+        if elapsed >= 13:
+            order.waiting_seconds += 6
+            order.waiting_price = (order.waiting_seconds // 10) * 2
+            order.is_waiting = False
+            order.waiting_started_at = None
+            order.status = 'in_progress'
+            order.save(update_fields=['waiting_seconds', 'waiting_price', 'is_waiting', 'waiting_started_at', 'status'])
+
+    elif order.status == 'in_progress':
+        trip_duration = 10.0
+        progress = min(1.0, (elapsed - 13.0) / trip_duration)
+
+        if progress >= 1.0:
+            order.status = 'completed'
+            orig_price = float(order.price) if order.price is not None else 0.0
+            waiting_pr = float(order.waiting_price)
+            final_price = orig_price + waiting_pr
+            order.price = final_price
+            order.remainder_amount = max(0.0, final_price - float(order.deposit_amount))
+            order.payment_status = 'paid'
+            order.save(update_fields=['status', 'payment_status', 'price', 'remainder_amount'])
+            
+            if driver_profile:
+                driver_profile.lat = order.end_lat
+                driver_profile.lon = order.end_lon
+                driver_profile.save(update_fields=['lat', 'lon'])
+        else:
+            if driver_profile:
+                driver_profile.lat = order.start_lat + (order.end_lat - order.start_lat) * progress
+                driver_profile.lon = order.start_lon + (order.end_lon - order.start_lon) * progress
+                driver_profile.save(update_fields=['lat', 'lon'])
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_active_order(request):
+    """
+    Повертає поточне активне замовлення пасажира або водія.
+    """
+    user = request.user
+    profile = _get_profile(user)
+
+    order = None
+    is_offer = False
+
+    if profile.role == 'driver':
+        order = Order.objects.filter(
+            driver=user,
+            status__in=['accepted', 'waiting', 'in_progress']
+        ).order_by('-created_at').first()
+
+        if not order:
+            offer_order = Order.objects.filter(
+                status='searching',
+                driver__isnull=True
+            ).exclude(declined_by=user).order_by('-created_at').first()
+
+            if not offer_order:
+                offer_order = Order.objects.filter(
+                    status='searching',
+                    driver=user
+                ).exclude(declined_by=user).order_by('-created_at').first()
+
+            if offer_order:
+                order = offer_order
+                is_offer = True
+    else:
+        order = Order.objects.filter(
+            passenger=user,
+            status__in=['new', 'searching', 'accepted', 'waiting', 'in_progress']
+        ).order_by('-created_at').first()
+
+        if not order:
+            order = Order.objects.filter(
+                passenger=user,
+                status='completed',
+                payment_status='pending_remainder'
+            ).order_by('-created_at').first()
+
+    if order:
+        if order.driver and getattr(order.driver, 'userprofile', None) and order.driver.userprofile.is_bot_driver:
+            _simulate_bot_order(order)
+
+        driver_info = None
+        if order.driver:
+            dp = _get_profile(order.driver)
+            driver_info = {
+                "user_id": order.driver.id,
+                "name": order.driver.first_name or order.driver.username,
+                "phone": dp.phone,
+                "car": " ".join(x for x in [dp.car_make, dp.car_model] if x).strip(),
+                "plate": dp.car_plate,
+                "bio": dp.driver_bio,
+                "lat": dp.lat,
+                "lon": dp.lon,
+                "is_bot": dp.is_bot_driver,
+            }
+
+        waiting_sec = order.waiting_seconds
+        if order.is_waiting and order.waiting_started_at:
+            elapsed = int((timezone.now() - order.waiting_started_at).total_seconds())
+            waiting_sec += elapsed
+        
+        waiting_pr = (waiting_sec // 10) * 2
+        orig_price = float(order.price) if order.price is not None else 0.0
+        total_price = orig_price + float(waiting_pr)
+
+        remainder_checkout_url = None
+        if order.payment_status == 'pending_remainder' and order.remainder_amount > 0:
+            checkout_res = _create_stripe_checkout(order, request, order.remainder_amount, "remainder")
+            if not checkout_res.get("error"):
+                remainder_checkout_url = checkout_res.get("checkout_url")
+
+        return Response({
+            "status": "success",
+            "has_active": True,
+            "is_offer": is_offer,
+            "order": {
+                "id": order.id,
+                "status": order.status,
+                "passenger_id": order.passenger_id if order.passenger else None,
+                "passenger_name": order.passenger_name,
+                "service_tier": order.service_tier,
+                "start_lat": order.start_lat,
+                "start_lon": order.start_lon,
+                "end_lat": order.end_lat,
+                "end_lon": order.end_lon,
+                "distance": order.distance,
+                "payment_method": order.payment_method,
+                "payment_status": order.payment_status,
+                "driver": driver_info,
+                "created_at": order.created_at.isoformat(),
+                "waiting_seconds": waiting_sec,
+                "waiting_price": float(waiting_pr),
+                "is_waiting": order.is_waiting,
+                "original_price": orig_price,
+                "price": total_price,
+                "deposit_amount": float(order.deposit_amount),
+                "remainder_amount": float(order.remainder_amount),
+                "remainder_checkout_url": remainder_checkout_url,
+            }
+        })
+
+    return Response({
+        "status": "success",
+        "has_active": False
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_order_action(request, order_id):
+    """
+    Виконує дію (прийняти, відхилити, почати очікування, завершити тощо) над конкретним замовленням.
+    """
+    action = request.data.get('action')
+    allowed_actions = ('accept', 'decline', 'start_waiting', 'stop_waiting', 'start_ride', 'complete', 'cancel')
+    if action not in allowed_actions:
+        return Response({"error": "Невідома дія"}, status=400)
+
+    order = Order.objects.filter(pk=order_id).first()
+    if not order:
+        return Response({"error": "Замовлення не знайдено"}, status=404)
+
+    user = request.user
+    profile = _get_profile(user)
+
+    if action == 'accept':
+        if profile.role != 'driver':
+            return Response({"error": "Тільки водій може прийняти замовлення"}, status=403)
+        if order.status != 'searching':
+            return Response({"error": "Замовлення не очікує прийняття"}, status=400)
+        if order.driver and order.driver != user:
+            return Response({"error": "Це замовлення вже прийнято іншим водієм"}, status=400)
+
+        order.driver = user
+        order.status = 'accepted'
+        order.save(update_fields=['driver', 'status'])
+
+    elif action == 'decline':
+        if profile.role != 'driver':
+            return Response({"error": "Тільки водій може відхилити замовлення"}, status=403)
+        if order.status != 'searching':
+            return Response({"error": "Замовлення не очікує прийняття"}, status=400)
+
+        order.declined_by.add(user)
+        
+        if order.driver == user:
+            order.driver = None
+            order.save(update_fields=['driver'])
+
+    elif action == 'start_waiting':
+        if profile.role != 'driver':
+            return Response({"error": "Тільки водій може керувати очікуванням"}, status=403)
+        if order.driver != user:
+            return Response({"error": "Ви не призначені водієм для цього замовлення"}, status=403)
+        if order.is_waiting:
+            return Response({"error": "Очікування вже запущено"}, status=400)
+
+        order.is_waiting = True
+        order.waiting_started_at = timezone.now()
+        order.status = 'waiting'
+        order.save(update_fields=['is_waiting', 'waiting_started_at', 'status'])
+
+    elif action == 'stop_waiting':
+        if profile.role != 'driver':
+            return Response({"error": "Тільки водій може керувати очікуванням"}, status=403)
+        if order.driver != user:
+            return Response({"error": "Ви не призначені водієм для цього замовлення"}, status=403)
+        if not order.is_waiting:
+            return Response({"error": "Очікування не запущено"}, status=400)
+
+        elapsed = 0
+        if order.waiting_started_at:
+            elapsed = int((timezone.now() - order.waiting_started_at).total_seconds())
+
+        order.waiting_seconds += elapsed
+        order.waiting_price = (order.waiting_seconds // 10) * 2
+        order.is_waiting = False
+        order.waiting_started_at = None
+        if order.status == 'waiting':
+            order.status = 'accepted'
+        
+        order.save(update_fields=['waiting_seconds', 'waiting_price', 'is_waiting', 'waiting_started_at', 'status'])
+
+    elif action == 'start_ride':
+        if profile.role != 'driver':
+            return Response({"error": "Тільки водій може розпочати поїздку"}, status=403)
+        if order.driver != user:
+            return Response({"error": "Ви не призначені водієм для цього замовлення"}, status=403)
+        if order.status not in ('accepted', 'waiting'):
+            return Response({"error": "Неможливо розпочати поїздку з цього статусу"}, status=400)
+
+        if order.is_waiting:
+            elapsed = 0
+            if order.waiting_started_at:
+                elapsed = int((timezone.now() - order.waiting_started_at).total_seconds())
+            order.waiting_seconds += elapsed
+            order.waiting_price = (order.waiting_seconds // 10) * 2
+            order.is_waiting = False
+            order.waiting_started_at = None
+
+        order.status = 'in_progress'
+        order.save(update_fields=['status', 'waiting_seconds', 'waiting_price', 'is_waiting', 'waiting_started_at'])
+
+    elif action == 'complete':
+        if profile.role != 'driver':
+            return Response({"error": "Тільки водій може завершити поїздку"}, status=403)
+        if order.driver != user:
+            return Response({"error": "Ви не призначені водієм для цього замовлення"}, status=403)
+        if order.status not in ('accepted', 'waiting', 'in_progress'):
+            return Response({"error": "Поїздка не в процесі виконання"}, status=400)
+
+        if order.is_waiting:
+            elapsed = 0
+            if order.waiting_started_at:
+                elapsed = int((timezone.now() - order.waiting_started_at).total_seconds())
+            order.waiting_seconds += elapsed
+            order.is_waiting = False
+            order.waiting_started_at = None
+
+        orig_price = float(order.price) if order.price is not None else 0.0
+        waiting_pr = float((order.waiting_seconds // 10) * 2)
+        final_price = orig_price + waiting_pr
+
+        order.price = final_price
+        order.waiting_price = waiting_pr
+        order.remainder_amount = max(0.0, final_price - float(order.deposit_amount))
+        
+        order.status = 'completed'
+        if order.payment_method == 'card':
+            if order.remainder_amount > 0:
+                order.payment_status = 'pending_remainder'
+            else:
+                order.payment_status = 'paid'
+        else:
+            order.payment_status = 'paid'
+
+        order.save(update_fields=['status', 'payment_status', 'price', 'waiting_price', 'waiting_seconds', 'is_waiting', 'waiting_started_at', 'remainder_amount'])
+
+    elif action == 'cancel':
+        if order.is_waiting:
+            order.is_waiting = False
+            order.waiting_started_at = None
+        
+        if profile.role == 'driver':
+            if order.driver != user:
+                return Response({"error": "Ви не можете скасувати чуже замовлення"}, status=403)
+            if order.status not in ('accepted', 'waiting', 'in_progress'):
+                return Response({"error": "Неможливо скасувати замовлення в поточному статусі"}, status=400)
+        else:
+            if order.passenger != user:
+                return Response({"error": "Ви не можете скасувати чуже замовлення"}, status=403)
+            if order.status not in ('new', 'searching'):
+                return Response({"error": "Неможливо скасувати замовлення, оскільки водій уже в дорозі"}, status=400)
+
+        order.status = 'cancelled'
+        order.save(update_fields=['status', 'is_waiting', 'waiting_started_at'])
+
+    return Response({"status": "success", "order_status": order.status})

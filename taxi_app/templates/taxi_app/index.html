@@ -7,309 +7,584 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
-            --primary: #ffd400;
-            --bg: #080b12;
-            --card: rgba(20, 24, 35, 0.72);
-            --card2: rgba(39, 45, 61, 0.9);
-            --text: #f5f8ff;
-            --muted: #9aa6be;
-            --accent: #4fa5ff;
-            --radius: 22px;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.25);
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --bg: #090a0f;
+            --card: rgba(15, 17, 28, 0.78);
+            --card-border: rgba(99, 102, 241, 0.12);
+            --card2: rgba(26, 30, 48, 0.65);
+            --text: #f3f4f6;
+            --muted: #9ca3af;
+            --muted-light: #cbd5e1;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --radius: 16px;
         }
+
         * { box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             margin: 0;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
-            overflow-x: hidden;
+            overflow: hidden;
         }
+
+        /* Authentication Gate styling */
         .gate-wrap {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 24px;
+            background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.1), transparent 40%),
+                        radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.08), transparent 40%);
         }
         .gate-card {
-            width: min(440px, 100%);
+            width: min(420px, 100%);
             background: var(--card);
+            border: 1px solid var(--card-border);
             border-radius: var(--radius);
-            padding: 32px 28px;
-            box-shadow: 0 12px 48px rgba(0,0,0,.55);
+            padding: 36px 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,.6);
+            backdrop-filter: blur(20px);
             text-align: center;
         }
-        .gate-logo { font-size: 2.75rem; margin-bottom: 8px; }
-        .gate-card h1 { font-size: 1.35rem; margin: 0 0 8px; font-weight: 700; }
-        .gate-card p.sub { margin: 0 0 24px; color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
+        .gate-logo {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.3));
+        }
+        .gate-card h1 {
+            font-size: 1.6rem;
+            margin: 0 0 10px;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gate-card p.sub {
+            margin: 0 0 28px;
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
 
-        #screen-app #map { height: 100vh; width: 100%; z-index: 1; }
-        #screen-app { position: relative; min-height: 100vh; }
+        /* Map styling */
+        #screen-app #map {
+            height: 100vh;
+            width: 100%;
+            z-index: 1;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #screen-app {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+        }
 
-        .top-bar {
+        /* Sidebar Dashboard Panel */
+        .sidebar-panel {
             position: fixed;
-            top: 14px;
-            left: 14px;
-            right: 14px;
+            left: 16px;
+            top: 16px;
+            bottom: 16px;
+            width: 400px;
             z-index: 1000;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .top-bar-inner {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-        }
-        .pill {
             background: var(--card);
-            padding: 8px 16px;
-            border-radius: 999px;
-            font-size: 0.875rem;
-            box-shadow: 0 6px 20px rgba(0,0,0,.28);
-            max-width: 100%;
-            border: 1px solid rgba(255,255,255,.08);
-            backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(24px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .pill span { color: var(--muted); }
+
+        .sidebar-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .brand .logo {
+            font-size: 1.8rem;
+        }
+        .brand-name {
+            font-size: 1.35rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .user-info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        /* Role Tabs */
+        .role-tabs-container {
+            padding: 4px 20px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
         .role-tabs {
-            display: inline-flex;
-            background: var(--card2);
+            display: flex;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 999px;
-            padding: 4px;
+            padding: 3px;
+            width: 100%;
         }
         .role-tab {
-            padding: 8px 16px;
+            flex: 1;
+            padding: 8px 12px;
             border-radius: 999px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
+            font-weight: 700;
+            font-size: 0.8rem;
             border: none;
             background: transparent;
+            color: var(--muted);
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .role-tab:hover {
             color: var(--text);
         }
-        .role-tab.active { background: var(--primary); color: #111; }
-        .link-out {
-            color: var(--accent);
-            text-decoration: none;
-            font-size: 0.85rem;
+        .role-tab.active {
+            background: var(--primary-gradient);
+            color: #ffffff;
+            box-shadow: 0 4px 12px var(--primary-glow);
         }
-        .link-out:hover { text-decoration: underline; }
 
-        .bottom-sheet-wrap {
-            position: fixed;
-            bottom: 14px;
-            left: 12px;
-            right: 12px;
-            z-index: 1000;
-            pointer-events: none;
-        }
-        .bottom-sheet {
-            background: linear-gradient(180deg, rgba(17, 21, 31, .78), rgba(17, 21, 31, .88));
-            border-radius: var(--radius);
-            padding: 20px 20px calc(22px + env(safe-area-inset-bottom));
-            box-shadow: 0 16px 50px rgba(0,0,0,.45);
-            text-align: left;
-            max-height: min(62vh, 520px);
+        /* Sidebar Content tab areas */
+        .sidebar-content {
+            flex: 1;
             overflow-y: auto;
-            border: 1px solid rgba(255,255,255,.10);
-            backdrop-filter: blur(16px);
-            pointer-events: auto;
-            animation: slideUp .4s ease-out;
-        }
-        .sheet-toggle {
-            position: sticky;
-            top: 0;
-            margin: -8px 0 10px;
-            width: 100%;
+            padding: 24px;
             display: flex;
-            justify-content: center;
-            z-index: 3;
+            flex-direction: column;
         }
-        .sheet-toggle button {
-            border: 1px solid rgba(255,255,255,.15);
-            background: rgba(255,255,255,.08);
+        
+        /* Custom scrollbar for sidebar */
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 99px;
+        }
+        .sidebar-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.3);
+        }
+
+        .tab-pane, .app-modal {
+            display: none;
+            animation: fadeIn 0.3s ease;
+            flex-direction: column;
+            width: 100%;
+        }
+        .tab-pane.active, .app-modal.active {
+            display: flex;
+        }
+        .tab-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 0 0 16px 0;
             color: var(--text);
+        }
+
+        /* Control elements */
+        label.row-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--muted);
+            display: block;
+            margin-bottom: 8px;
+            margin-top: 16px;
+            font-weight: 700;
+        }
+        .field {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,.06);
+            background: var(--card2);
+            color: var(--text);
+            outline: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.25s ease;
+        }
+        .field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .chips-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .chip {
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--muted);
+            padding: 8px 14px;
             border-radius: 999px;
-            width: 40px;
-            height: 24px;
+            font-size: 0.8rem;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s ease;
         }
-        .bottom-sheet.collapsed {
-            max-height: 62px;
-            overflow: hidden;
+        .chip:hover {
+            color: var(--text);
+            border-color: rgba(99, 102, 241, 0.3);
         }
-        .support-wrap {
-            margin-top: 12px;
-            border: 1px solid rgba(255,255,255,.08);
-            border-radius: 14px;
+        .chip.selected {
+            border-color: var(--primary);
+            background: var(--primary-glow);
+            color: #ffffff;
+        }
+
+        /* Tier selector cards */
+        .tier-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .tier-card {
+            border: 1px solid rgba(255,255,255,.05);
+            border-radius: 12px;
+            background: rgba(255,255,255,.02);
+            color: var(--muted);
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        .tier-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            color: var(--text);
+            transform: translateY(-2px);
+        }
+        .tier-card.selected {
+            border-color: var(--primary);
+            background: var(--primary-glow);
+            color: #ffffff;
+        }
+        .tier-icon {
+            font-size: 1.3rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .tier-title {
+            font-size: .8rem;
+            font-weight: 700;
+            display: block;
+        }
+        .tier-price {
+            font-size: .68rem;
+            color: var(--muted);
+            display: block;
+            margin-top: 2px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid rgba(255,255,255,.04);
+            border-radius: 12px;
             padding: 12px;
-            background: rgba(255,255,255,.03);
+            margin-top: 10px;
+        }
+        .grid2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .hint {
+            margin: 4px 0 0 0;
+            font-size: 0.78rem;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        /* Buttons */
+        .btn-big {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: #ffffff;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.5);
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: var(--card2);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .btn-success {
+            background: var(--accent);
+            color: #ffffff;
+        }
+        .btn-success:hover {
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transform: translateY(-1px);
+        }
+
+        #fare-preview {
+            margin-top: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+            background: rgba(99, 102, 241, 0.06);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        /* Role Pick Gating Card (Who you are) */
+        .role-pick-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .pick-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            text-align: left;
+            background: rgba(255, 255, 255, 0.02);
+            color: inherit;
+            font-family: inherit;
+            width: 100%;
+            transition: all 0.25s ease;
+        }
+        .pick-card:hover {
+            border-color: var(--primary);
+            background: var(--primary-glow);
+            transform: translateY(-2px);
+        }
+        .pick-card .emoji { font-size: 2rem; }
+        .pick-card strong { display: block; margin-bottom: 2px; }
+        .pick-card small { color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
+
+        /* Badges and active order panels */
+        .badge-on {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: .75rem;
+            font-weight: 700;
+        }
+        .badge-off {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--muted);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: .75rem;
+        }
+
+        .order-status-badge {
+            display: inline-block;
+            background: var(--primary-gradient);
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .order-driver-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 14px 0;
+            display: grid;
+            gap: 6px;
+        }
+        .order-price-tag {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 14px 0;
+            text-align: center;
+        }
+
+        /* Support Tickets & Messages */
+        .support-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
         .support-messages {
-            max-height: 180px;
+            max-height: 160px;
             overflow-y: auto;
             display: grid;
             gap: 8px;
             margin: 8px 0;
+            padding-right: 4px;
         }
         .support-msg {
-            padding: 8px 10px;
-            border-radius: 10px;
-            background: rgba(255,255,255,.06);
-            font-size: .82rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: .8rem;
         }
         .support-msg.support {
             border-left: 3px solid var(--primary);
+            background: rgba(99, 102, 241, 0.04);
         }
 
-        .chips-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-        .chip {
-            border: 1px solid var(--card2);
-            background: var(--card2);
-            color: var(--text);
-            padding: 10px 14px;
-            border-radius: 999px;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .chip:hover { border-color: var(--primary); }
-        .chip.selected { border-color: var(--primary); background: rgba(255,221,0,.12); }
-        .tier-cards {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-            margin: 14px 0;
-        }
-        .tier-card {
-            border: 1px solid rgba(255,255,255,.12);
-            border-radius: 14px;
-            background: rgba(255,255,255,.04);
-            color: var(--text);
-            padding: 12px 10px;
-            text-align: left;
-            cursor: pointer;
-            transition: transform .18s ease, border-color .18s ease, background .18s ease;
-            animation: fadeIn .45s ease;
-        }
-        .tier-card:hover { transform: translateY(-2px); border-color: rgba(255,212,0,.6); }
-        .tier-card.selected {
-            border-color: var(--primary);
-            background: rgba(255,212,0,.12);
-        }
-        .tier-icon { font-size: 1.1rem; display: block; margin-bottom: 6px; }
-        .tier-title { font-size: .85rem; font-weight: 700; display:block; }
-        .tier-price { font-size: .72rem; color: var(--muted); display:block; margin-top: 3px; }
-
-        .hint { margin: 0; font-size: 0.8125rem; color: var(--muted); line-height: 1.45; }
-        .panel {
-            background: rgba(42,42,42,.7);
-            border: 1px solid rgba(255,255,255,.06);
-            border-radius: 14px;
-            padding: 12px;
-            margin-top: 10px;
-        }
-        .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-        .field {
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,.08);
-            background: var(--card2);
-            color: var(--text);
-            outline: none;
-        }
-        .field:focus { border-color: rgba(255,221,0,.6); }
-        .list {
-            display: grid;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        .list button { text-align: left; }
-
-        .btn-big {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 12px;
-        }
-        .btn-primary { background: var(--primary); color: #111; }
-        .btn-secondary { background: var(--card2); color: var(--text); }
-        .btn-success { background: #2bbf6a; color: #063; font-weight: 700; }
-
-        #order-btn.big-hidden { display: none !important; }
-
-        .role-pick-cards { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
-        .pick-card {
+        /* Sidebar Footer Navigation bar */
+        .sidebar-nav {
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
             display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 18px 18px;
-            border-radius: 14px;
-            border: 1px solid var(--card2);
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.15);
+        }
+        .nav-item {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            padding: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            text-align: left;
-            background: var(--card2);
-            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            flex: 1;
+            transition: all 0.2s ease;
+            text-decoration: none;
             font-family: inherit;
-            width: 100%;
         }
-        .pick-card:hover { border-color: var(--primary); }
-        .pick-card .emoji { font-size: 2rem; }
-        .pick-card strong { display: block; margin-bottom: 4px; }
-        .pick-card small { color: var(--muted); font-size: 0.8125rem; line-height: 1.35; }
+        .nav-item:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.08);
+        }
+        .nav-icon {
+            font-size: 1.25rem;
+        }
+        .nav-text {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .nav-item.logout {
+            color: var(--danger);
+        }
+        .nav-item.logout:hover {
+            background: rgba(239, 68, 68, 0.08);
+        }
 
-        #driver-shift-row { margin-top: 14px; }
-        .badge-on { background: rgba(43,191,106,.22); color: #87ffb3; padding: 4px 10px; border-radius: 8px; font-size: .75rem; font-weight: 700; }
-        .badge-off { background: var(--card2); color: var(--muted); padding: 4px 10px; border-radius: 8px; font-size: .75rem; }
-
-        label.row-label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: block; margin-bottom: 6px; margin-top: 10px; }
-        #fare-preview {
-            margin-top: 10px;
-            font-weight: 600;
-            color: #d7e4ff;
-        }
-        .point-a-icon, .point-b-icon {
-            display:flex;
-            align-items:center;
-            justify-content:center;
-        }
+        /* Leaflet custom styling */
         .point-a-icon span {
-            width: 16px;
-            height: 16px;
-            display:block;
-            border-radius: 999px;
-            background: #ffd400;
-            border: 2px solid #202020;
-            box-shadow: 0 0 0 2px rgba(255,212,0,.28);
+            width: 14px;
+            height: 14px;
+            display: block;
+            border-radius: 99px;
+            background: var(--primary);
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 10px var(--primary);
         }
         .point-b-icon span {
-            width: 15px;
-            height: 15px;
-            display:block;
-            background: #111;
-            border: 2px solid #fff;
-            border-radius: 4px;
+            width: 14px;
+            height: 14px;
+            display: block;
+            border-radius: 99px;
+            background: #ffffff;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
-        .fade-in {
-            animation: fadeIn .45s ease;
-        }
-        @keyframes slideUp {
-            from { transform: translateY(24px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
+
+        /* Animations */
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse-animation {
+            box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+            animation: pulse 1.6s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+            }
+        }
+
+        /* Responsive Layout */
+        @media (max-width: 768px) {
+            .sidebar-panel {
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+                top: auto;
+                width: auto;
+                max-height: 80vh;
+                border-radius: 20px;
+            }
+            #screen-app #map {
+                height: 100vh;
+            }
         }
     </style>
 </head>
@@ -327,7 +602,7 @@
             <script async src="https://telegram.org/js/telegram-widget.js?22"
                 data-telegram-login="{{ telegram_bot_username }}"
                 data-size="large"
-                data-auth-url="{{ telegram_redirect_uri }}"
+                data-onauth="onTelegramAuth(user)"
                 data-request-access="write">
             </script>
             <div style="margin-top:14px; display:grid; gap:10px;">
@@ -365,148 +640,301 @@
     </div>
     {% else %}
     <div id="screen-app">
-        <div class="top-bar">
-            <div class="top-bar-inner">
-                <div class="pill">Вітаю, <strong>{{ user.first_name|default:user.username }}</strong></div>
+        <!-- Unified Sidebar Panel -->
+        <div class="sidebar-panel">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <span class="logo">🚕</span>
+                    <span class="brand-name">Taxi Pro</span>
+                </div>
+                <div class="user-info-bar">
+                    <span>Вітаю, <strong>{{ user.first_name|default:user.username }}</strong></span>
+                </div>
+            </div>
+
+            <div class="role-tabs-container">
                 <div class="role-tabs" role="tablist">
                     <button type="button" class="role-tab {% if profile.role == 'passenger' %}active{% endif %}" data-role="passenger" id="tab-passenger">Пасажир</button>
                     <button type="button" class="role-tab {% if profile.role == 'driver' %}active{% endif %}" data-role="driver" id="tab-driver">Водій</button>
                     <button type="button" class="role-tab {% if profile.role == 'support' %}active{% endif %}" data-role="support" id="tab-support">Support</button>
                 </div>
             </div>
-            <div class="pill"><a class="link-out" href="{% url 'logout' %}">Вийти</a></div>
-        </div>
 
-        <div id="map"></div>
+            <div class="sidebar-content">
+                <!-- Map Tab Pane (Active Workflows) -->
+                <div id="tab-pane-map" class="tab-pane active" style="display:flex;">
+                    <!-- Passenger UI -->
+                    <div id="passenger-ui" {% if profile.role != 'passenger' %}style="display:none"{% endif %}>
+                        <!-- Form for Booking -->
+                        <div id="passenger-order-form">
+                            <label class="row-label">Звідки їдемо</label>
+                            <div class="chips-row" id="start-mode-chips">
+                                <button type="button" class="chip selected" data-start="gps">Моя геолокація</button>
+                                <button type="button" class="chip" data-start="map">На мапі</button>
+                                <button type="button" class="chip" data-start="address">Адреса</button>
+                            </div>
+                            <div class="panel" id="start-address-panel" style="display:none;">
+                                <input class="field" id="start-address" placeholder="Введіть адресу старту..." />
+                                <div class="list" id="start-suggest"></div>
+                                <p class="hint" style="margin-top:8px;">Порада: обери підказку — стартовий маркер переміститься.</p>
+                            </div>
+                            <div class="panel" id="start-map-panel" style="display:none;">
+                                <p class="hint">Натисни на мапі, щоб поставити старт. Також можна перетягнути стартовий маркер.</p>
+                            </div>
 
-        <div class="bottom-sheet-wrap">
-            <div class="bottom-sheet">
-                <div class="sheet-toggle"><button type="button" id="sheet-toggle-btn">⌃</button></div>
-                <div id="passenger-ui" {% if profile.role != 'passenger' %}style="display:none"{% endif %}>
-                    <label class="row-label">Звідки їдемо</label>
-                    <div class="chips-row" id="start-mode-chips">
-                        <button type="button" class="chip selected" data-start="gps">Моя геолокація</button>
-                        <button type="button" class="chip" data-start="map">На мапі</button>
-                        <button type="button" class="chip" data-start="address">Адреса</button>
-                    </div>
-                    <div class="panel" id="start-address-panel" style="display:none;">
-                        <input class="field" id="start-address" placeholder="Введіть адресу старту (наприклад: Хрещатик 1, Київ)" />
-                        <div class="list" id="start-suggest"></div>
-                        <p class="hint" style="margin-top:8px;">Порада: обери підказку — стартовий маркер переміститься.</p>
-                    </div>
-                    <div class="panel" id="start-map-panel" style="display:none;">
-                        <p class="hint">Натисни на мапі, щоб поставити старт. Також можна перетягнути стартовий маркер.</p>
+                            <label class="row-label">Клас поїздки</label>
+                            <div class="tier-cards" id="tier-cards">
+                                <button type="button" class="tier-card fade-in" data-tier="economy">
+                                    <span class="tier-icon">🚗</span>
+                                    <span class="tier-title">Економ</span>
+                                    <span class="tier-price">Доступний</span>
+                                </button>
+                                <button type="button" class="tier-card selected fade-in" data-tier="standard">
+                                    <span class="tier-icon">🚕</span>
+                                    <span class="tier-title">Стандарт</span>
+                                    <span class="tier-price">Популярний</span>
+                                </button>
+                                <button type="button" class="tier-card fade-in" data-tier="comfort">
+                                    <span class="tier-icon">🚘</span>
+                                    <span class="tier-title">Комфорт</span>
+                                    <span class="tier-price">Зручний</span>
+                                </button>
+                            </div>
+                            <p class="hint" id="tier-hint">Стандарт: базова подача + оптимальна ціна за км. Змініть клас до натискання «Замовити».</p>
+                            <p id="fare-preview" class="fade-in">Орієнтовна ціна: —</p>
+
+                            <label class="row-label">Водій</label>
+                            <div class="chips-row" id="driver-pick-row">
+                                <button type="button" class="chip selected" data-driver="auto">Автоматично</button>
+                                <button type="button" class="chip" id="btn-load-drivers">Обрати водія</button>
+                            </div>
+                            <div id="drivers-list" style="display:none; margin-top:10px;"></div>
+
+                            <label class="row-label">Оплата</label>
+                            <div class="chips-row" id="payment-chips">
+                                <button type="button" class="chip selected" data-payment="cash">Готівка</button>
+                                <button type="button" class="chip" data-payment="card">Картка (Stripe)</button>
+                            </div>
+                            <input class="field" id="promo-code" placeholder="Промокод (опційно)" />
+                            <p class="hint" id="payment-hint">Готівка: оплата водію після завершення поїздки.</p>
+                            <p id="info" style="margin:12px 0 0;">Натисніть на карту, щоб обрати пункт призначення.</p>
+                            <button type="button" id="order-btn" class="btn-big btn-primary big-hidden">Замовити таксі</button>
+                        </div>
+
+                        <!-- Passenger Active Order Status Panel -->
+                        <div id="passenger-active-order-panel" style="display:none;">
+                            <div class="order-status-badge pulse-animation" id="psg-order-status-badge">Шукаємо водія</div>
+                            <p class="hint" id="psg-order-status-desc">Надсилаємо запит водієві...</p>
+                            
+                            <div class="order-driver-card" id="psg-order-driver-card" style="display:none;">
+                                <label class="row-label" style="margin-top:0; color:var(--primary);">Ваш водій</label>
+                                <strong id="psg-order-driver-name" style="font-size:1.1rem; display:block;">-</strong>
+                                <span id="psg-order-driver-car" style="font-size:0.875rem; color:var(--muted); display:block;">-</span>
+                                <span id="psg-order-driver-plate" style="font-size:0.75rem; background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px; width:fit-content; display:inline-block; margin-top:4px;">-</span>
+                                <a href="#" id="psg-order-driver-phone" class="link-out" style="margin-top:8px; display:inline-block; font-weight:700;">📞 Зателефонувати</a>
+                            </div>
+                            
+                            <!-- Split Payment Info for Passenger -->
+                            <div id="psg-payment-split-info" style="display:none; margin:15px 0; padding:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:10px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.875rem;">
+                                    <span style="color:var(--muted);">Передплата (депозит):</span>
+                                    <span id="psg-payment-deposit" style="font-weight:700;">0.00 UAH</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.875rem;">
+                                    <span style="color:var(--muted);">Очікування (простій):</span>
+                                    <span id="psg-payment-wait" style="font-weight:700; color:var(--danger);">0.00 UAH</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; font-size:0.875rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px; margin-top:6px;">
+                                    <span style="color:var(--text); font-weight:600;">Залишок до сплати:</span>
+                                    <span id="psg-payment-remainder" style="font-weight:800; color:var(--primary);">0.00 UAH</span>
+                                </div>
+                            </div>
+
+                            <div id="psg-stripe-remainder-btn-container" style="display:none; margin:15px 0 10px;">
+                                <a href="#" id="btn-pay-remainder" target="_blank" class="btn-big btn-success" style="display:block; text-align:center; text-decoration:none; margin-top:0;">Оплатити залишок Stripe</a>
+                            </div>
+
+                            <div class="order-price-tag" id="psg-order-price">- UAH</div>
+                            <button type="button" id="btn-cancel-order" class="btn-big btn-secondary" style="margin-top:10px;">Скасувати замовлення</button>
+                        </div>
                     </div>
 
-                    <label class="row-label">Клас поїздки</label>
-                    <div class="tier-cards" id="tier-cards">
-                        <button type="button" class="tier-card fade-in" data-tier="economy">
-                            <span class="tier-icon">🚗</span>
-                            <span class="tier-title">Економ</span>
-                            <span class="tier-price">Доступний тариф</span>
-                        </button>
-                        <button type="button" class="tier-card selected fade-in" data-tier="standard">
-                            <span class="tier-icon">🚕</span>
-                            <span class="tier-title">Стандарт</span>
-                            <span class="tier-price">Найпопулярніший</span>
-                        </button>
-                        <button type="button" class="tier-card fade-in" data-tier="comfort">
-                            <span class="tier-icon">🚘</span>
-                            <span class="tier-title">Комфорт</span>
-                            <span class="tier-price">Більше простору</span>
-                        </button>
-                    </div>
-                    <p class="hint" id="tier-hint">Стандарт: базова подача + оптимальна ціна за км. Змініть клас до натискання «Замовити».</p>
-                    <p id="fare-preview" class="fade-in">Орієнтовна ціна: —</p>
+                    <!-- Driver UI -->
+                    <div id="driver-ui" {% if profile.role != 'driver' %}style="display:none"{% endif %}>
+                        <!-- Shift Control -->
+                        <div id="driver-shift-panel">
+                            <p style="margin:0 0 4px;">Режим водія</p>
+                            <p class="hint" style="margin-top:0;">Статус: <span id="driver-status-badge" class="{% if profile.is_online %}badge-on{% else %}badge-off{% endif %}">{% if profile.is_online %}На лінії{% else %}Офлайн{% endif %}</span></p>
 
-                    <label class="row-label">Водій</label>
-                    <div class="chips-row" id="driver-pick-row">
-                        <button type="button" class="chip selected" data-driver="auto">Автоматично</button>
-                        <button type="button" class="chip" id="btn-load-drivers">Обрати водія</button>
+                            <label class="row-label">Тариф зміни</label>
+                            <div class="chips-row" id="driver-tariff-chips">
+                                <button type="button" class="chip {% if profile.tariff_plan == 'economy' %}selected{% endif %}" data-plan="economy">Економ</button>
+                                <button type="button" class="chip {% if profile.tariff_plan == 'standard' %}selected{% endif %}" data-plan="standard">Стандарт</button>
+                                <button type="button" class="chip {% if profile.tariff_plan == 'comfort' %}selected{% endif %}" data-plan="comfort">Комфорт</button>
+                            </div>
+                            <p class="hint">Тариф визначає замовлення, які ви будете отримувати.</p>
+
+                            <div id="driver-shift-row">
+                                <button type="button" id="btn-shift-start" class="btn-big btn-success" {% if profile.is_online %}style="display:none"{% endif %}>Почати зміну</button>
+                                <button type="button" id="btn-shift-end" class="btn-big btn-secondary" {% if not profile.is_online %}style="display:none"{% endif %}>Закінчити зміну</button>
+                            </div>
+                        </div>
+
+                        <!-- Driver Active Order / Request Panel -->
+                        <div id="driver-active-order-panel" style="display:none;">
+                            <div class="order-status-badge pulse-animation" id="drv-order-status-badge">Запит на поїздку</div>
+                            
+                            <div class="panel" style="margin-bottom:12px; display:grid; gap:8px;">
+                                <div>
+                                    <label class="row-label" style="margin-top:0;">Пасажир</label>
+                                    <strong id="drv-order-psg-name" style="font-size:1.05rem;">-</strong>
+                                </div>
+                                <div>
+                                    <label class="row-label">Маршрут</label>
+                                    <span style="font-size:0.875rem; display:block; white-space:pre-line;" id="drv-order-route">-</span>
+                                </div>
+                                <div>
+                                    <label class="row-label">Спосіб оплати</label>
+                                    <span style="font-size:0.875rem; display:block; font-weight:700;" id="drv-order-payment">-</span>
+                                </div>
+                                <!-- Wait information for driver -->
+                                <div id="drv-wait-info-box" style="display:none; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; margin-top: 4px;">
+                                    <label class="row-label">Простій / Очікування</label>
+                                    <span style="font-size:0.875rem; display:block; font-weight:700; color:var(--danger);" id="drv-order-wait-desc">0 с (0.00 UAH)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="order-price-tag" id="drv-order-price">- UAH</div>
+                            
+                            <!-- Driver Actions -->
+                            <div id="driver-action-accept-decline" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                <button type="button" id="btn-accept-order" class="btn-big btn-success" style="margin-top:0;">Прийняти</button>
+                                <button type="button" id="btn-decline-order" class="btn-big btn-secondary" style="margin-top:0;">Відхилити</button>
+                            </div>
+                            <div id="driver-action-ride-controls" style="display:none; flex-direction:column; gap:10px;">
+                                <!-- Waiting toggle buttons -->
+                                <button type="button" id="btn-start-waiting" class="btn-big btn-primary" style="margin-top:0;">Включити очікування</button>
+                                <button type="button" id="btn-stop-waiting" class="btn-big btn-secondary" style="margin-top:0; display:none;">Виключити очікування</button>
+                                
+                                <button type="button" id="btn-start-ride" class="btn-big btn-success" style="margin-top:0;">Початок поїздки</button>
+                                <button type="button" id="btn-complete-order" class="btn-big btn-success" style="margin-top:0; display:none;">Завершення поїздки</button>
+                                <button type="button" id="btn-cancel-order-driver" class="btn-big btn-secondary" style="margin-top:0;">Скасувати поїздку</button>
+                            </div>
+                        </div>
                     </div>
-                    <div id="drivers-list" style="display:none; margin-top:10px; display:none;"></div>
-                    <label class="row-label">Профіль пасажира</label>
-                    <div class="panel" style="display:grid; gap:10px;">
-                        <input class="field" id="psg-phone" placeholder="Телефон" value="{{ profile.phone|default:'' }}" />
-                        <input class="field" id="psg-city" placeholder="Місто (наприклад: Київ)" value="{{ profile.location_city|default:'' }}" />
-                        <button type="button" id="btn-save-passenger-profile" class="btn-big btn-secondary">Зберегти профіль</button>
-                        <p class="hint">Якщо місто вказане, мапа стартує в цьому місті.</p>
-                    </div>
-                    <label class="row-label">Оплата</label>
-                    <div class="chips-row" id="payment-chips">
-                        <button type="button" class="chip selected" data-payment="cash">Готівка</button>
-                        <button type="button" class="chip" data-payment="card">Картка (Stripe)</button>
-                    </div>
-                    <input class="field" id="promo-code" placeholder="Промокод (опційно)" />
-                    <p class="hint" id="payment-hint">Готівка: оплата водію після завершення поїздки.</p>
-                    <p id="info" style="margin:12px 0 0;">Натисніть на карту, щоб обрати пункт призначення.</p>
-                    <button type="button" id="order-btn" class="btn-big btn-primary big-hidden">Замовити таксі</button>
-                    <div class="support-wrap">
-                        <label class="row-label" style="margin-top:0;">Історія замовлень</label>
-                        <div id="orders-history" class="hint">Завантаження...</div>
-                    </div>
-                    <div class="support-wrap">
-                        <label class="row-label" style="margin-top:0;">Технічна підтримка</label>
-                        <input class="field" id="support-subject" placeholder="Тема звернення" />
-                        <textarea class="field" id="support-message" placeholder="Опишіть проблему" style="min-height:78px;"></textarea>
-                        <button type="button" id="btn-support-create" class="btn-big btn-secondary">Надіслати звернення</button>
-                        <div id="support-tickets-list" class="hint"></div>
-                        <div class="support-messages" id="support-messages"></div>
+
+                    <!-- Support agent fallback -->
+                    <div id="support-ui" {% if profile.role != 'support' %}style="display:none"{% endif %}>
+                        <p style="margin:0 0 4px;">Режим підтримки</p>
+                        <p class="hint" style="margin-top:0;">Перейдіть у вкладку "Підтримка" в меню нижче для керування тікетами.</p>
                     </div>
                 </div>
 
-                <div id="driver-ui" {% if profile.role != 'driver' %}style="display:none"{% endif %}>
-                    <p style="margin:0 0 4px;">Режим водія</p>
-                    <p class="hint" style="margin-top:0;">Статус: <span id="driver-status-badge" class="{% if profile.is_online %}badge-on{% else %}badge-off{% endif %}">{% if profile.is_online %}На лінії{% else %}Офлайн{% endif %}</span></p>
-
-                    <label class="row-label">Тариф зміни</label>
-                    <div class="chips-row" id="driver-tariff-chips">
-                        <button type="button" class="chip {% if profile.tariff_plan == 'economy' %}selected{% endif %}" data-plan="economy">Економ</button>
-                        <button type="button" class="chip {% if profile.tariff_plan == 'standard' %}selected{% endif %}" data-plan="standard">Стандарт</button>
-                        <button type="button" class="chip {% if profile.tariff_plan == 'comfort' %}selected{% endif %}" data-plan="comfort">Комфорт</button>
-                    </div>
-                    <p class="hint">Тариф зберігається у профілі; пізніше можна прив’язати його до пріоритету в черзі.</p>
-
-                    <div id="driver-shift-row">
-                        <button type="button" id="btn-shift-start" class="btn-big btn-success" {% if profile.is_online %}style="display:none"{% endif %}>Почати зміну</button>
-                        <button type="button" id="btn-shift-end" class="btn-big btn-secondary" {% if not profile.is_online %}style="display:none"{% endif %}>Закінчити зміну</button>
-                    </div>
-                    <label class="row-label">Налаштування водія</label>
-                    <div class="panel" style="display:grid; gap:10px;">
-                        <input class="field" id="drv-phone" placeholder="Телефон (для пасажира)" value="{{ profile.phone|default:'' }}" />
-                        <div class="grid2">
-                            <input class="field" id="drv-make" placeholder="Марка авто" value="{{ profile.car_make|default:'' }}" />
-                            <input class="field" id="drv-model" placeholder="Модель" value="{{ profile.car_model|default:'' }}" />
+                <!-- Glassmorphic Modals restructured inside sidebar as panes -->
+                <div id="modal-profile" class="app-modal">
+                    <h2 class="tab-title">Налаштування профілю</h2>
+                    
+                    <!-- Passenger Profile Fields -->
+                    <div class="passenger-only">
+                        <label class="row-label">Профіль пасажира</label>
+                        <div class="panel" style="display:grid; gap:10px;">
+                            <input class="field" id="psg-phone" placeholder="Телефон" value="{{ profile.phone|default:'' }}" />
+                            <input class="field" id="psg-city" placeholder="Місто (наприклад: Київ)" value="{{ profile.location_city|default:'' }}" />
+                            <button type="button" id="btn-save-passenger-profile" class="btn-big btn-primary">Зберегти профіль</button>
+                            <p class="hint">Якщо місто вказане, мапа стартує в цьому місті.</p>
                         </div>
-                        <div class="grid2">
-                            <input class="field" id="drv-plate" placeholder="Номер авто" value="{{ profile.car_plate|default:'' }}" />
-                            <input class="field" id="drv-bio" placeholder="Коротко про себе" value="{{ profile.driver_bio|default:'' }}" />
-                        </div>
-                        <button type="button" id="btn-save-driver-profile" class="btn-big btn-secondary">Зберегти</button>
-                        <p class="hint">Ці дані бачить пасажир при виборі водія.</p>
                     </div>
-                    <p class="hint" style="margin-top:14px;">Замовлення поруч з’являться тут після підключення backend-черги.</p>
-                    <div class="support-wrap">
-                        <label class="row-label" style="margin-top:0;">Технічна підтримка</label>
-                        <div id="support-tickets-list-driver" class="hint">Завантаження звернень...</div>
-                        <div class="support-messages" id="support-messages-driver"></div>
-                        <textarea class="field" id="support-reply-driver" placeholder="Відповідь у вибраний тікет" style="min-height:78px;"></textarea>
-                        <button type="button" id="btn-support-reply-driver" class="btn-big btn-secondary">Відповісти</button>
+                    
+                    <!-- Driver Profile Fields -->
+                    <div class="driver-only" style="display:none;">
+                        <label class="row-label">Профіль водія</label>
+                        <div class="panel" style="display:grid; gap:10px;">
+                            <input class="field" id="drv-phone" placeholder="Телефон (для пасажира)" value="{{ profile.phone|default:'' }}" />
+                            <div class="grid2">
+                                <input class="field" id="drv-make" placeholder="Марка авто" value="{{ profile.car_make|default:'' }}" />
+                                <input class="field" id="drv-model" placeholder="Модель" value="{{ profile.car_model|default:'' }}" />
+                            </div>
+                            <div class="grid2">
+                                <input class="field" id="drv-plate" placeholder="Номер авто" value="{{ profile.car_plate|default:'' }}" />
+                                <input class="field" id="drv-bio" placeholder="Коротко про себе" value="{{ profile.driver_bio|default:'' }}" />
+                            </div>
+                            <button type="button" id="btn-save-driver-profile" class="btn-big btn-primary">Зберегти профіль</button>
+                            <p class="hint">Ці дані бачить пасажир при виборі водія.</p>
+                        </div>
                     </div>
                 </div>
-                <div id="support-ui" {% if profile.role != 'support' %}style="display:none"{% endif %}>
-                    <p style="margin:0 0 4px;">Режим підтримки</p>
-                    <p class="hint" style="margin-top:0;">Тут можна відповідати на звернення користувачів.</p>
-                    <div class="support-wrap">
-                        <label class="row-label" style="margin-top:0;">Тікети підтримки</label>
-                        <div id="support-tickets-list-support" class="hint">Завантаження звернень...</div>
-                        <div class="support-messages" id="support-messages-support"></div>
-                        <textarea class="field" id="support-reply-support" placeholder="Відповідь у вибраний тікет" style="min-height:78px;"></textarea>
-                        <button type="button" id="btn-support-reply-support" class="btn-big btn-secondary">Відповісти</button>
+
+                <div id="modal-history" class="app-modal">
+                    <h2 class="tab-title">Історія поїздок</h2>
+                    <div id="orders-history" class="hint">Завантаження історії поїздок...</div>
+                </div>
+
+                <div id="modal-support" class="app-modal">
+                    <h2 class="tab-title">Служба підтримки</h2>
+                    
+                    <!-- Passenger Support Pane -->
+                    <div class="passenger-only">
+                        <div class="support-wrap">
+                            <label class="row-label" style="margin-top:0;">Створити новий тікет</label>
+                            <input class="field" id="support-subject" placeholder="Тема звернення" />
+                            <textarea class="field" id="support-message" placeholder="Опишіть проблему" style="min-height:78px;"></textarea>
+                            <button type="button" id="btn-support-create" class="btn-big btn-primary">Надіслати звернення</button>
+                            <div id="support-tickets-list" class="hint" style="margin-top: 16px;"></div>
+                            <div class="support-messages" id="support-messages"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Driver Support Pane -->
+                    <div class="driver-only" style="display:none;">
+                        <div class="support-wrap">
+                            <label class="row-label" style="margin-top:0;">Звернення та відповіді</label>
+                            <div id="support-tickets-list-driver" class="hint">Завантаження звернень...</div>
+                            <div class="support-messages" id="support-messages-driver"></div>
+                            <textarea class="field" id="support-reply-driver" placeholder="Відповідь у вибраний тікет" style="min-height:78px;"></textarea>
+                            <button type="button" id="btn-support-reply-driver" class="btn-big btn-primary">Відповісти</button>
+                        </div>
+                    </div>
+
+                    <!-- Support Agent Support Pane -->
+                    <div class="support-only" style="display:none;">
+                        <div class="support-wrap">
+                            <label class="row-label" style="margin-top:0;">Тікети користувачів</label>
+                            <div id="support-tickets-list-support" class="hint">Завантаження звернень...</div>
+                            <div class="support-messages" id="support-messages-support"></div>
+                            <textarea class="field" id="support-reply-support" placeholder="Відповідь у вибраний тікет" style="min-height:78px;"></textarea>
+                            <button type="button" id="btn-support-reply-support" class="btn-big btn-primary">Відповісти</button>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Floating Navigation inside Sidebar -->
+            <div class="sidebar-nav app-nav">
+                <button type="button" class="nav-item active" data-tab="map">
+                    <span class="nav-icon">🗺️</span>
+                    <span class="nav-text">Карта</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="profile">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Профіль</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="history">
+                    <span class="nav-icon">📜</span>
+                    <span class="nav-text">Історія</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="support">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-text">Підтримка</span>
+                </button>
+                <a href="{% url 'logout' %}" class="nav-item logout">
+                    <span class="nav-icon">🚪</span>
+                    <span class="nav-text">Вихід</span>
+                </a>
+            </div>
         </div>
+
+        <!-- Fullscreen Leaflet Map -->
+        <div id="map"></div>
     </div>
     {% endif %}
 
@@ -537,6 +965,21 @@
                 },
                 body: JSON.stringify(body || {})
             });
+        }
+
+        function onTelegramAuth(user) {
+            postJson('/taxi/api/auth/telegram/', user)
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d.status === 'success') {
+                        window.location.reload();
+                    } else {
+                        alert(d.message || d.error || 'Не вдалося авторизуватися через Telegram');
+                    }
+                })
+                .catch(function () {
+                    alert('Помилка мережі при спробі входу');
+                });
         }
 
         document.getElementById('pick-passenger') && document.getElementById('pick-passenger').addEventListener('click', function () {
@@ -658,6 +1101,68 @@
                 });
             }
 
+            // Tab switching and menu navigation logic
+            window.currentTab = 'map';
+            window.switchTab = function (tab) {
+                window.currentTab = tab;
+                document.querySelectorAll('.app-nav .nav-item').forEach(function (btn) {
+                    btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+                });
+                
+                var paneMap = document.getElementById('tab-pane-map');
+                if (paneMap) paneMap.style.display = 'none';
+                
+                document.querySelectorAll('.app-modal').forEach(function (m) {
+                    m.style.display = 'none';
+                });
+                
+                if (tab === 'map') {
+                    if (paneMap) paneMap.style.display = 'flex';
+                    return;
+                }
+                
+                var modal = document.getElementById('modal-' + tab);
+                if (modal) {
+                    modal.style.display = 'flex';
+                    if (tab === 'history') {
+                        loadOrdersHistory();
+                    } else if (tab === 'support') {
+                        loadSupportTickets();
+                    }
+                }
+            };
+            window.closeModal = function () {
+                window.switchTab('map');
+            };
+
+            document.querySelectorAll('.app-nav .nav-item[data-tab]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var tab = btn.getAttribute('data-tab');
+                    window.switchTab(tab);
+                });
+            });
+
+            // Update visible sub-panes based on active role (passenger vs driver vs support agent)
+            function updateRoleUI(role) {
+                var modals = ['modal-profile', 'modal-support'];
+                modals.forEach(function (modalId) {
+                    var modal = document.getElementById(modalId);
+                    if (!modal) return;
+                    modal.querySelectorAll('.passenger-only').forEach(function (el) {
+                        el.style.display = role === 'passenger' ? 'block' : 'none';
+                    });
+                    modal.querySelectorAll('.driver-only').forEach(function (el) {
+                        el.style.display = role === 'driver' ? 'block' : 'none';
+                    });
+                    modal.querySelectorAll('.support-only').forEach(function (el) {
+                        el.style.display = role === 'support' ? 'block' : 'none';
+                    });
+                });
+            }
+
+            // Init role UI state
+            updateRoleUI('{{ profile.role|default:"passenger" }}');
+
             document.querySelectorAll('.role-tab').forEach(function (tab) {
                 tab.addEventListener('click', function () {
                     var role = tab.getAttribute('data-role');
@@ -676,6 +1181,8 @@
                                 if (supUi) supUi.style.display = d.role === 'support' ? 'block' : 'none';
                                 body.classList.remove('app-passenger-mode', 'app-driver-mode', 'app-support-mode');
                                 body.classList.add('app-' + d.role + '-mode');
+                                updateRoleUI(d.role);
+                                if (typeof pollActiveOrder === 'function') pollActiveOrder();
                                 if (d.role === 'passenger') {
                                     if (typeof map.invalidateSize === 'function') setTimeout(function () { map.invalidateSize(); }, 200);
                                 }
@@ -743,12 +1250,36 @@
                 var box = document.getElementById('orders-history');
                 if (!box) return;
                 if (!items || !items.length) {
-                    box.textContent = 'Поки немає замовлень.';
+                    box.innerHTML = '<div style="color:var(--muted); text-align:center; padding:20px;">Поки немає замовлень.</div>';
                     return;
                 }
                 box.innerHTML = items.map(function (it) {
-                    return '#' + it.id + ' · ' + it.service_tier + ' · ' + it.price + ' UAH · ' + it.status;
-                }).join('<br>');
+                    var details = '';
+                    if (it.waiting_seconds > 0) {
+                        details += '<div style="font-size:0.8rem; color:var(--muted); margin-top:4px;">⏱️ Очікування: ' + it.waiting_seconds + ' с (' + it.waiting_price.toFixed(2) + ' UAH)</div>';
+                    }
+                    if (it.driver_name) {
+                        details += '<div style="font-size:0.8rem; color:var(--muted);">🚗 Водій: ' + it.driver_name + '</div>';
+                    } else if (it.passenger_name) {
+                        details += '<div style="font-size:0.8rem; color:var(--muted);">👤 Пасажир: ' + it.passenger_name + '</div>';
+                    }
+                    if (it.distance) {
+                        details += '<div style="font-size:0.8rem; color:var(--muted);">📏 Дистанція: ' + it.distance.toFixed(2) + ' км</div>';
+                    }
+                    return '<div class="panel" style="margin-bottom:12px; border-left:4px solid ' + 
+                           (it.status === 'completed' ? 'var(--accent)' : 'var(--danger)') + '; padding:12px; display:flex; flex-direction:column; gap:4px;">' +
+                           '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+                               '<strong style="color:var(--text);">Замовлення #' + it.id + '</strong>' +
+                               '<span style="font-size:0.8rem; background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:10px; color:var(--text);">' + it.created_at_label + '</span>' +
+                           '</div>' +
+                           '<div style="font-size:0.9rem; font-weight:700; color:var(--primary); margin-top:4px;">' + it.service_tier_label + ' · ' + it.price.toFixed(2) + ' UAH</div>' +
+                           '<div style="font-size:0.85rem; display:flex; justify-content:space-between; margin-top:2px;">' +
+                               '<span>Статус: <strong style="color:' + (it.status === 'completed' ? 'var(--accent)' : 'var(--danger)') + '">' + it.status_label + '</strong></span>' +
+                               '<span>Оплата: <strong>' + it.payment_status_label + ' (' + it.payment_method_label + ')</strong></span>' +
+                           '</div>' +
+                           details +
+                           '</div>';
+                }).join('');
             }
             function loadOrdersHistory() {
                 fetch(API.ordersHistory, { credentials: 'same-origin' })
@@ -1136,9 +1667,13 @@
                             if (data.promo_applied) {
                                 driverText += '\nПромокод: ' + data.promo_applied.code + ' (-' + data.promo_applied.discount_percent + '%)';
                             }
+                            
+                            activeOrderId = data.order_id;
+                            if (typeof pollActiveOrder === 'function') pollActiveOrder();
+
                             if (data.payment_method === 'card' && data.payment_url) {
                                 alert('Замовлення #' + data.order_id + ' створено. Ціна: ' + data.price + ' ' + (data.currency || 'UAH') + driverText + '\nЗараз буде відкрито оплату карткою.');
-                                // Redirect на сторінку чекауту стороннього мерчанта (Stripe Checkout).
+                                // Redirect на сторінку чекауту Stripe.
                                 window.location.href = data.payment_url;
                             } else {
                                 alert('Замовлення #' + data.order_id + ' створено! Ціна: ' + data.price + ' ' + (data.currency || 'UAH') + ' (клас ' + passengerTier + ')' + driverText);
@@ -1152,6 +1687,403 @@
                         if (err) alert('Не вдалося створити замовлення.');
                     });
             };
+
+            // Active Order Logic & Polling
+            var activeOrderId = null;
+            var activeDriverMarker = null;
+
+            function updateActiveDriverMarker(driver) {
+                if (activeDriverMarker) {
+                    map.removeLayer(activeDriverMarker);
+                    activeDriverMarker = null;
+                }
+                if (driver && driver.lat != null && driver.lon != null) {
+                    var label = (driver.name || 'Водій') + ' · ' + (driver.car || '') + ' (' + (driver.plate || '') + ')';
+                    activeDriverMarker = L.marker([driver.lat, driver.lon], { icon: carIcon }).addTo(map).bindPopup(label);
+                    activeDriverMarker.openPopup();
+                }
+            }
+
+            var currentOrderStatus = null;
+
+            function pollActiveOrder() {
+                fetch('/taxi/api/orders/active/', { credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        var role = '{{ profile.role|default:"passenger" }}';
+                        var activeTab = document.querySelector('.role-tab.active');
+                        if (activeTab) {
+                            role = activeTab.getAttribute('data-role');
+                        }
+                        
+                        var psgPanel = document.getElementById('passenger-active-order-panel');
+                        var psgForm = document.getElementById('passenger-order-form');
+                        var drvPanel = document.getElementById('driver-active-order-panel');
+                        var drvShift = document.getElementById('driver-shift-panel');
+                        
+                        if (d.has_active && d.order) {
+                            var order = d.order;
+                            activeOrderId = order.id;
+                            
+                            if (order.status !== currentOrderStatus) {
+                                if (routeLine) {
+                                    map.removeLayer(routeLine);
+                                    routeLine = null;
+                                }
+                                currentOrderStatus = order.status;
+                            }
+                            
+                            if (role === 'passenger') {
+                                if (psgForm) psgForm.style.display = 'none';
+                                if (psgPanel) psgPanel.style.display = 'block';
+                                
+                                var badge = document.getElementById('psg-order-status-badge');
+                                var desc = document.getElementById('psg-order-status-desc');
+                                var price = document.getElementById('psg-order-price');
+                                var card = document.getElementById('psg-order-driver-card');
+                                
+                                if (price) price.textContent = order.price.toFixed(2) + ' UAH';
+                                
+                                if (badge) {
+                                    if (order.status === 'new') {
+                                        badge.textContent = 'Очікування передплати';
+                                        badge.className = 'order-status-badge pulse-animation';
+                                        if (desc) desc.textContent = 'Будь ласка, здійсніть передоплату 100 грн для старту пошуку водія...';
+                                    } else if (order.status === 'searching') {
+                                        badge.textContent = 'Шукаємо водія';
+                                        badge.className = 'order-status-badge pulse-animation';
+                                        if (desc) desc.textContent = 'Пошук водія розпочато. Запит надіслано вільним таксистам...';
+                                    } else if (order.status === 'accepted') {
+                                        badge.textContent = 'Водій їде до вас';
+                                        badge.className = 'order-status-badge';
+                                        if (desc) desc.textContent = 'Водій прийняв замовлення і прямує до вашої точки старту.';
+                                    } else if (order.status === 'waiting') {
+                                        badge.textContent = 'Таксі очікує';
+                                        badge.className = 'order-status-badge pulse-animation';
+                                        if (desc) desc.textContent = 'Водій очікує на місці. Перші хвилини безкоштовні, далі нараховується плата.';
+                                    } else if (order.status === 'in_progress') {
+                                        badge.textContent = 'У дорозі';
+                                        badge.className = 'order-status-badge';
+                                        if (desc) desc.textContent = 'Поїздка розпочалася. Гарної подорожі!';
+                                    } else if (order.status === 'completed') {
+                                        badge.textContent = 'Завершено';
+                                        badge.className = 'order-status-badge badge-on';
+                                        if (order.payment_status === 'pending_remainder') {
+                                            if (desc) desc.textContent = 'Поїздка закінчилась. Будь ласка, сплатіть залишок через форму оплати Stripe.';
+                                        } else {
+                                            if (desc) desc.textContent = 'Дякуємо, що скористалися Taxi Pro!';
+                                        }
+                                    }
+                                }
+
+                                // Split payment info
+                                var splitBox = document.getElementById('psg-payment-split-info');
+                                var btnRemainder = document.getElementById('psg-stripe-remainder-btn-container');
+                                if (order.payment_method === 'card') {
+                                    if (splitBox) {
+                                        splitBox.style.display = 'block';
+                                        document.getElementById('psg-payment-deposit').textContent = order.deposit_amount.toFixed(2) + ' UAH';
+                                        document.getElementById('psg-payment-wait').textContent = order.waiting_price.toFixed(2) + ' UAH';
+                                        document.getElementById('psg-payment-remainder').textContent = order.remainder_amount.toFixed(2) + ' UAH';
+                                    }
+                                    if (order.payment_status === 'pending_remainder' && order.remainder_checkout_url) {
+                                        if (btnRemainder) {
+                                            btnRemainder.style.display = 'block';
+                                            document.getElementById('btn-pay-remainder').href = order.remainder_checkout_url;
+                                        }
+                                    } else {
+                                        if (btnRemainder) btnRemainder.style.display = 'none';
+                                    }
+                                } else {
+                                    if (splitBox) splitBox.style.display = 'none';
+                                    if (btnRemainder) btnRemainder.style.display = 'none';
+                                }
+                                
+                                if (order.driver) {
+                                    if (card) card.style.display = 'grid';
+                                    document.getElementById('psg-order-driver-name').textContent = order.driver.name;
+                                    document.getElementById('psg-order-driver-car').textContent = order.driver.car || 'Звичайне авто';
+                                    document.getElementById('psg-order-driver-plate').textContent = order.driver.plate || 'Без номеру';
+                                    var phoneLink = document.getElementById('psg-order-driver-phone');
+                                    if (phoneLink) {
+                                        if (order.driver.phone) {
+                                            phoneLink.style.display = 'inline-block';
+                                            phoneLink.href = 'tel:' + order.driver.phone;
+                                        } else {
+                                            phoneLink.style.display = 'none';
+                                        }
+                                    }
+                                    updateActiveDriverMarker(order.driver);
+                                } else {
+                                    if (card) card.style.display = 'none';
+                                    updateActiveDriverMarker(null);
+                                }
+                                
+                                if (order.start_lat && order.start_lon && order.end_lat && order.end_lon && !routeLine) {
+                                    drawActiveRoute(order.start_lat, order.start_lon, order.end_lat, order.end_lon);
+                                }
+                            } else if (role === 'driver') {
+                                if (drvShift) drvShift.style.display = 'none';
+                                if (drvPanel) drvPanel.style.display = 'block';
+                                
+                                var badge = document.getElementById('drv-order-status-badge');
+                                var psgName = document.getElementById('drv-order-psg-name');
+                                var routeText = document.getElementById('drv-order-route');
+                                var paymentText = document.getElementById('drv-order-payment');
+                                var price = document.getElementById('drv-order-price');
+                                
+                                if (psgName) psgName.textContent = order.passenger_name;
+                                if (price) price.textContent = order.price.toFixed(2) + ' UAH';
+                                if (paymentText) {
+                                    var methodLabel = order.payment_method === 'card' ? 'Картка (Stripe)' : 'Готівка';
+                                    var statusLabel = '';
+                                    if (order.payment_status === 'pending_deposit') statusLabel = ' (Очікує передплати)';
+                                    else if (order.payment_status === 'deposit_paid') statusLabel = ' (Передплачено)';
+                                    else if (order.payment_status === 'pending_remainder') statusLabel = ' (Очікує доплати)';
+                                    else if (order.payment_status === 'paid') statusLabel = ' (Оплачено)';
+                                    paymentText.textContent = methodLabel + statusLabel;
+                                }
+                                if (routeText) {
+                                    routeText.textContent = 'Звідки: ' + order.start_lat.toFixed(4) + ', ' + order.start_lon.toFixed(4) + '\nКуди: ' + order.end_lat.toFixed(4) + ', ' + order.end_lon.toFixed(4);
+                                }
+                                
+                                // Wait time details display
+                                var drvWaitBox = document.getElementById('drv-wait-info-box');
+                                if (drvWaitBox) {
+                                    drvWaitBox.style.display = 'block';
+                                    var waitMin = Math.floor(order.waiting_seconds / 60);
+                                    var waitSec = order.waiting_seconds % 60;
+                                    document.getElementById('drv-order-wait-desc').textContent = waitMin + ' хв ' + waitSec + ' с (' + order.waiting_price.toFixed(2) + ' UAH)';
+                                }
+
+                                var actDecline = document.getElementById('driver-action-accept-decline');
+                                var rideControls = document.getElementById('driver-action-ride-controls');
+                                
+                                if (d.is_offer) {
+                                    if (badge) { badge.textContent = 'Нова пропозиція'; badge.className = 'order-status-badge pulse-animation'; }
+                                    if (actDecline) actDecline.style.display = 'grid';
+                                    if (rideControls) rideControls.style.display = 'none';
+                                } else {
+                                    if (actDecline) actDecline.style.display = 'none';
+                                    if (rideControls) rideControls.style.display = 'flex';
+                                    
+                                    var btnStartWait = document.getElementById('btn-start-waiting');
+                                    var btnStopWait = document.getElementById('btn-stop-waiting');
+                                    var btnStartRide = document.getElementById('btn-start-ride');
+                                    var btnComplete = document.getElementById('btn-complete-order');
+                                    
+                                    if (order.status === 'accepted') {
+                                        if (badge) { badge.textContent = 'Прийнято водієм'; badge.className = 'order-status-badge'; }
+                                        if (btnStartWait) btnStartWait.style.display = 'block';
+                                        if (btnStopWait) btnStopWait.style.display = 'none';
+                                        if (btnStartRide) btnStartRide.style.display = 'block';
+                                        if (btnComplete) btnComplete.style.display = 'none';
+                                    } else if (order.status === 'waiting') {
+                                        if (badge) { badge.textContent = 'Очікування пасажира'; badge.className = 'order-status-badge pulse-animation'; }
+                                        if (btnStartWait) btnStartWait.style.display = 'none';
+                                        if (btnStopWait) btnStopWait.style.display = 'block';
+                                        if (btnStartRide) btnStartRide.style.display = 'block';
+                                        if (btnComplete) btnComplete.style.display = 'none';
+                                    } else if (order.status === 'in_progress') {
+                                        if (badge) { badge.textContent = 'У дорозі'; badge.className = 'order-status-badge'; }
+                                        if (btnStartWait) btnStartWait.style.display = 'none';
+                                        if (btnStopWait) btnStopWait.style.display = 'none';
+                                        if (btnStartRide) btnStartRide.style.display = 'none';
+                                        if (btnComplete) btnComplete.style.display = 'block';
+                                    }
+                                }
+                                
+                                if (order.start_lat && order.start_lon && order.end_lat && order.end_lon && !routeLine) {
+                                    if (order.status === 'accepted' || order.status === 'waiting') {
+                                        // Build route from driver current location to passenger start location
+                                        if (order.driver && order.driver.lat != null && order.driver.lon != null) {
+                                            drawActiveRoute(order.driver.lat, order.driver.lon, order.start_lat, order.start_lon);
+                                        } else {
+                                            drawActiveRoute(order.start_lat, order.start_lon, order.end_lat, order.end_lon);
+                                        }
+                                    } else {
+                                        // Build route from passenger start location to destination
+                                        drawActiveRoute(order.start_lat, order.start_lon, order.end_lat, order.end_lon);
+                                    }
+                                }
+                            }
+                        } else {
+                            if (activeOrderId !== null) {
+                                alert('Замовлення завершено або скасовано.');
+                                activeOrderId = null;
+                                window.location.reload();
+                            }
+                            
+                            if (role === 'passenger') {
+                                if (psgForm) psgForm.style.display = 'block';
+                                if (psgPanel) psgPanel.style.display = 'none';
+                            } else if (role === 'driver') {
+                                if (drvShift) drvShift.style.display = 'block';
+                                if (drvPanel) drvPanel.style.display = 'none';
+                            }
+                            
+                            if (routeLine) {
+                                map.removeLayer(routeLine);
+                                routeLine = null;
+                            }
+                            if (destinationMarker) {
+                                map.removeLayer(destinationMarker);
+                                destinationMarker = null;
+                            }
+                            updateActiveDriverMarker(null);
+                        }
+                    })
+                    .catch(function () {});
+            }
+            
+            function drawActiveRoute(sLat, sLon, eLat, eLon) {
+                var osrmUrl = 'https://router.project-osrm.org/route/v1/driving/'
+                    + sLon + ',' + sLat + ';' + eLon + ',' + eLat
+                    + '?overview=full&geometries=geojson';
+
+                fetch(osrmUrl)
+                    .then(function (r) { return r.json(); })
+                    .then(function (routeJson) {
+                        var latlngs;
+                        try {
+                            var geom = routeJson.routes[0].geometry;
+                            latlngs = decodeOsrmLonLat(geom.coordinates);
+                        } catch (e) {
+                            latlngs = [[sLat, sLon], [eLat, eLon]];
+                        }
+                        if (routeLine) map.removeLayer(routeLine);
+                        routeLine = L.polyline(latlngs, { color: '#ffdd00', weight: 6, opacity: 0.92 }).addTo(map);
+                        
+                        startMarker.setLatLng([sLat, sLon]);
+                        if (destinationMarker) map.removeLayer(destinationMarker);
+                        destinationMarker = L.marker([eLat, eLon], { icon: endIcon }).addTo(map);
+                        
+                        map.fitBounds(routeLine.getBounds(), { padding: [48, 48] });
+                    })
+                    .catch(function () {
+                        if (routeLine) map.removeLayer(routeLine);
+                        routeLine = L.polyline([[sLat, sLon], [eLat, eLon]], { color: '#ffdd00', weight: 6 }).addTo(map);
+                    });
+            }
+
+            // Action button listeners for active order
+            document.getElementById('btn-cancel-order') && document.getElementById('btn-cancel-order').addEventListener('click', function() {
+                if (confirm('Ви дійсно бажаєте скасувати замовлення?')) {
+                    postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'cancel' })
+                        .then(function(r) { return r.json(); })
+                        .then(function(d) {
+                            if (d.status === 'success') {
+                                alert('Замовлення скасовано.');
+                                activeOrderId = null;
+                                window.location.reload();
+                            } else {
+                                alert(d.error || 'Помилка скасування');
+                            }
+                        });
+                }
+            });
+
+            document.getElementById('btn-accept-order') && document.getElementById('btn-accept-order').addEventListener('click', function() {
+                postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'accept' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d.status === 'success') {
+                            if (routeLine) {
+                                map.removeLayer(routeLine);
+                                routeLine = null;
+                            }
+                            pollActiveOrder();
+                        } else {
+                            alert(d.error || 'Помилка при прийнятті');
+                        }
+                    });
+            });
+
+            document.getElementById('btn-decline-order') && document.getElementById('btn-decline-order').addEventListener('click', function() {
+                postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'decline' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d.status === 'success') {
+                            activeOrderId = null;
+                            window.location.reload();
+                        } else {
+                            alert(d.error || 'Помилка при відхиленні');
+                        }
+                    });
+            });
+
+            document.getElementById('btn-start-waiting') && document.getElementById('btn-start-waiting').addEventListener('click', function() {
+                postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'start_waiting' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d.status === 'success') {
+                            pollActiveOrder();
+                        } else {
+                            alert(d.error || 'Помилка при запуску очікування');
+                        }
+                    });
+            });
+
+            document.getElementById('btn-stop-waiting') && document.getElementById('btn-stop-waiting').addEventListener('click', function() {
+                postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'stop_waiting' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d.status === 'success') {
+                            pollActiveOrder();
+                        } else {
+                            alert(d.error || 'Помилка при зупиненні очікування');
+                        }
+                    });
+            });
+
+            document.getElementById('btn-start-ride') && document.getElementById('btn-start-ride').addEventListener('click', function() {
+                postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'start_ride' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d.status === 'success') {
+                            if (routeLine) {
+                                map.removeLayer(routeLine);
+                                routeLine = null;
+                            }
+                            pollActiveOrder();
+                        } else {
+                            alert(d.error || 'Помилка при початку поїздки');
+                        }
+                    });
+            });
+
+            document.getElementById('btn-complete-order') && document.getElementById('btn-complete-order').addEventListener('click', function() {
+                postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'complete' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d.status === 'success') {
+                            alert('Вітаємо! Поїздка успішно завершена.');
+                            activeOrderId = null;
+                            window.location.reload();
+                        } else {
+                            alert(d.error || 'Помилка при завершенні');
+                        }
+                    });
+            });
+
+            document.getElementById('btn-cancel-order-driver') && document.getElementById('btn-cancel-order-driver').addEventListener('click', function() {
+                if (confirm('Скасувати поїздку?')) {
+                    postJson('/taxi/api/orders/' + activeOrderId + '/action/', { action: 'cancel' })
+                        .then(function(r) { return r.json(); })
+                        .then(function(d) {
+                            if (d.status === 'success') {
+                                alert('Поїздку скасовано.');
+                                activeOrderId = null;
+                                window.location.reload();
+                            } else {
+                                alert(d.error || 'Помилка при скасуванні');
+                            }
+                        });
+                }
+            });
+
+            pollActiveOrder();
+            setInterval(pollActiveOrder, 4000);
         })();
     </script>
 </body>

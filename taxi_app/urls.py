@@ -20,6 +20,8 @@ from .views import (
     telegram_auth,
     telegram_login_callback,
     stripe_webhook,
+    api_active_order,
+    api_order_action,
 )
 
 urlpatterns = [
@@ -38,6 +40,8 @@ urlpatterns = [
     path('api/payments/stripe/webhook/', stripe_webhook, name='stripe_webhook'),
     path('api/me/', api_me, name='api_me'),
     path('api/orders/history/', api_orders_history, name='api_orders_history'),
+    path('api/orders/active/', api_active_order, name='api_active_order'),
+    path('api/orders/<int:order_id>/action/', api_order_action, name='api_order_action'),
     path('api/session/role/', api_set_role, name='api_set_role'),
     path('api/driver/shift/', api_driver_shift, name='api_driver_shift'),
     path('api/driver/tariff/', api_driver_tariff, name='api_driver_tariff'),
